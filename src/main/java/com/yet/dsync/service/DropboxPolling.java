@@ -27,7 +27,7 @@ public class DropboxPolling implements Runnable {
             ListFolderResult listFolderResult = client.files()
                     .listFolderContinue(cursor);
 
-            while (! Thread.interrupted() ) {
+            while (!Thread.interrupted()) {
                 cursor = listFolderResult.getCursor();
                 saveCursor(cursor);
 
@@ -80,7 +80,7 @@ public class DropboxPolling implements Runnable {
             e1.printStackTrace();
         }
     }
-    
+
     private void saveCursor(String cursor) {
         Config.getInstance().setCursor(cursor);
     }

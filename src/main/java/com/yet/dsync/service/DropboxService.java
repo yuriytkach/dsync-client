@@ -62,8 +62,8 @@ public class DropboxService {
     public String retrieveLatestCursor() {
         try {
             ListFolderGetLatestCursorResult result = client.files()
-                    .listFolderGetLatestCursorBuilder("").withRecursive(Boolean.TRUE)
-                    .start();
+                    .listFolderGetLatestCursorBuilder("")
+                    .withRecursive(Boolean.TRUE).start();
             return result.getCursor();
         } catch (DbxException e) {
             throw new DSyncClientException(e);
@@ -85,7 +85,7 @@ public class DropboxService {
             throw new DSyncClientException(e);
         }
     }
-    
+
     public Thread createPollingThread() {
         return new Thread(new DropboxPolling(client));
     }
