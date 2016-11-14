@@ -32,8 +32,7 @@ public class Config {
         return _instance;
     }
 
-    private Preferences prefs = Preferences
-            .userNodeForPackage(DSyncClient.class);
+    private Preferences prefs = Preferences.userNodeForPackage(DSyncClient.class);
 
     public boolean isFirstRun() {
         return prefs.getBoolean(KEY_FIRST_RUN, true);

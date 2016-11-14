@@ -39,8 +39,7 @@ public class DropboxService {
 
     public void createConfig() {
         Builder configBuilder = DbxRequestConfig.newBuilder("dsyncclient");
-        config = configBuilder.withAutoRetryEnabled(3)
-                .withUserLocaleFromPreferences().build();
+        config = configBuilder.withAutoRetryEnabled(3).withUserLocaleFromPreferences().build();
     }
 
     public void authenticate() {
@@ -48,19 +47,16 @@ public class DropboxService {
 
         DbxAppInfo appInfo = new DbxAppInfo(APP_KEY, "none");
 
-        Request request = DbxWebAuth.newRequestBuilder().withNoRedirect()
-                .build();
+        Request request = DbxWebAuth.newRequestBuilder().withNoRedirect().build();
         DbxWebAuth webAuth = new DbxWebAuth(config, appInfo);
         String authWebUrl = webAuth.authorize(request);
 
         System.out.println("1. Go to: " + authWebUrl);
-        System.out
-                .println("2. Click \"Allow\" (you might have to log in first)");
+        System.out.println("2. Click \"Allow\" (you might have to log in first)");
         System.out.println("3. Copy the authorization code.");
         System.out.print("4. Input code and hit Enter: ");
         try {
-            String code = new BufferedReader(new InputStreamReader(System.in))
-                    .readLine().trim();
+            String code = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
             Config.getInstance().setAccessToken(code);
         } catch (IOException e) {
             e.printStackTrace();
@@ -75,8 +71,7 @@ public class DropboxService {
 
     public String retrieveLatestCursor() {
         try {
-            ListFolderGetLatestCursorResult result = client.files()
-                    .listFolderGetLatestCursorBuilder("")
+            ListFolderGetLatestCursorResult result = client.files().listFolderGetLatestCursorBuilder("")
                     .withRecursive(Boolean.TRUE).start();
             return result.getCursor();
         } catch (DbxException e) {
@@ -91,8 +86,7 @@ public class DropboxService {
 
             SpaceUsage space = client.users().getSpaceUsage();
             long usedBytes = space.getUsed();
-            long availBytes = space.getAllocation().getIndividualValue()
-                    .getAllocated();
+            long availBytes = space.getAllocation().getIndividualValue().getAllocated();
 
             return new UserData(username, usedBytes, availBytes);
         } catch (DbxException e) {

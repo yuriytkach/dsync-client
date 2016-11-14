@@ -30,8 +30,8 @@ public class DSyncClientException extends RuntimeException {
         super(message, cause);
     }
 
-    public DSyncClientException(String message, Throwable cause,
-            boolean enableSuppression, boolean writableStackTrace) {
+    public DSyncClientException(String message, Throwable cause, boolean enableSuppression,
+            boolean writableStackTrace) {
         super(message, cause, enableSuppression, writableStackTrace);
     }
 

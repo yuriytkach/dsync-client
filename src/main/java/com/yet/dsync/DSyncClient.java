@@ -61,8 +61,7 @@ public class DSyncClient {
         UserData userData = dropboxService.retrieveUserData();
 
         System.out.println("Hello, " + userData.getUserName());
-        System.out.println("Used storage " + userData.getUsedBytesDisplay()
-                + " of " + userData.getAvailBytesDisplay());
+        System.out.println("Used storage " + userData.getUsedBytesDisplay() + " of " + userData.getAvailBytesDisplay());
     }
 
     private void run() {

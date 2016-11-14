@@ -38,8 +38,7 @@ public class DropboxPolling implements Runnable {
 
         try {
 
-            ListFolderResult listFolderResult = client.files()
-                    .listFolderContinue(cursor);
+            ListFolderResult listFolderResult = client.files().listFolderContinue(cursor);
 
             while (!Thread.interrupted()) {
                 cursor = listFolderResult.getCursor();
@@ -53,30 +52,24 @@ public class DropboxPolling implements Runnable {
                             System.out.println("FOLDER " + e.getPathLower());
                         } else {
                             FileMetadata fileMetadata = (FileMetadata) e;
-                            System.out
-                                    .println("FILE   " + e.getPathLower() + " ("
-                                            + UserData.humanReadableByteCount(
-                                                    fileMetadata.getSize())
-                                            + ")");
+                            System.out.println("FILE   " + e.getPathLower() + " ("
+                                    + UserData.humanReadableByteCount(fileMetadata.getSize()) + ")");
                         }
                     }
                 });
 
                 if (listFolderResult.getHasMore()) {
-                    listFolderResult = client.files()
-                            .listFolderContinue(cursor);
+                    listFolderResult = client.files().listFolderContinue(cursor);
                 } else {
                     boolean changes = false;
 
                     while (!changes) {
-                        ListFolderLongpollResult listFolderLongpollResult = client
-                                .files().listFolderLongpoll(cursor);
+                        ListFolderLongpollResult listFolderLongpollResult = client.files().listFolderLongpoll(cursor);
                         changes = listFolderLongpollResult.getChanges();
 
                         if (!changes) {
 
-                            Long backoff = listFolderLongpollResult
-                                    .getBackoff();
+                            Long backoff = listFolderLongpollResult.getBackoff();
                             if (backoff != null) {
                                 try {
                                     Thread.sleep(backoff * 1000);
@@ -86,8 +79,7 @@ public class DropboxPolling implements Runnable {
                             }
                         }
                     }
-                    listFolderResult = client.files()
-                            .listFolderContinue(cursor);
+                    listFolderResult = client.files().listFolderContinue(cursor);
                 }
             }
         } catch (DbxException e1) {
