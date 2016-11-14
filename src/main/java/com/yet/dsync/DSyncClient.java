@@ -14,9 +14,15 @@
 
 package com.yet.dsync;
 
+import java.io.File;
+import java.sql.Connection;
+
+import com.yet.dsync.dao.ConfigDao;
+import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.service.DropboxService;
+import com.yet.dsync.service.LocalFolderService;
 import com.yet.dsync.util.Config;
 
 public class DSyncClient {
@@ -25,10 +31,18 @@ public class DSyncClient {
         new DSyncClient().start();
     }
 
-    private DropboxService dropboxService = new DropboxService();
+    private DropboxService dropboxService;
+    private LocalFolderService localFolderService;
+    
+    private ConfigDao configDao;
 
     private void start() {
-        if (Config.getInstance().isFirstRun()) {
+        boolean firstRun = isFirstRun();
+        
+        initDao(firstRun);
+        initServices();
+        
+        if (firstRun) {
             initialStart();
         } else {
             normalStart();
@@ -36,6 +50,35 @@ public class DSyncClient {
 
         greeting();
         run();
+    }
+
+    private boolean isFirstRun() {
+        String configDir = Config.getProgramConfigurationDirectory();
+        File db = new File(configDir + File.separator + Config.DB_NAME);
+        return ! db.exists();
+    }
+    
+    private void initDao(boolean firstRun) {
+        DatabaseInit dbInit = new DatabaseInit();
+        
+        String configDir = Config.getProgramConfigurationDirectory();
+        
+        File configDirFile = new File(configDir);
+        if (!configDirFile.exists() && firstRun) {
+            configDirFile.mkdirs();
+        }
+        
+        Connection connection = dbInit.createConnection(configDirFile.getAbsolutePath(), Config.DB_NAME);
+        if (firstRun) {
+            dbInit.createTables(connection);
+        }
+        
+        configDao = new ConfigDao(connection);
+    }
+    
+    private void initServices() {
+        localFolderService = new LocalFolderService(configDao);
+        dropboxService = new DropboxService(configDao);
     }
 
     private void initialStart() {
@@ -46,10 +89,11 @@ public class DSyncClient {
         dropboxService.authenticate();
         dropboxService.createClient();
         String cursor = dropboxService.retrieveLatestCursor();
-        Config.getInstance().setCursor(cursor);
-        Config.getInstance().setFirstRun(false);
+        configDao.write(Config.CURSOR, cursor);
 
         System.out.println("Got latest cursor");
+        
+        localFolderService.setupLocalFolder();
     }
 
     private void normalStart() {

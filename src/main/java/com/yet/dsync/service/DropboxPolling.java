@@ -21,20 +21,23 @@ import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.ListFolderLongpollResult;
 import com.dropbox.core.v2.files.ListFolderResult;
+import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.util.Config;
 
 public class DropboxPolling implements Runnable {
 
     private DbxClientV2 client;
+    private ConfigDao configDao;
 
-    public DropboxPolling(DbxClientV2 client) {
+    public DropboxPolling(DbxClientV2 client, ConfigDao configDao) {
         this.client = client;
+        this.configDao = configDao;
     }
 
     @Override
     public void run() {
-        String cursor = Config.getInstance().getCursor();
+        String cursor = configDao.read(Config.CURSOR);
 
         try {
 
@@ -88,7 +91,7 @@ public class DropboxPolling implements Runnable {
     }
 
     private void saveCursor(String cursor) {
-        Config.getInstance().setCursor(cursor);
+        configDao.write(Config.CURSOR, cursor);
     }
 
 }

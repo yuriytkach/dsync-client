@@ -28,6 +28,7 @@ import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.ListFolderGetLatestCursorResult;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
+import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
@@ -36,6 +37,11 @@ public class DropboxService {
 
     private DbxClientV2 client;
     private DbxRequestConfig config;
+    private ConfigDao configDao;
+
+    public DropboxService(ConfigDao configDao) {
+        this.configDao = configDao;
+    }
 
     public void createConfig() {
         Builder configBuilder = DbxRequestConfig.newBuilder("dsyncclient");
@@ -57,7 +63,7 @@ public class DropboxService {
         System.out.print("4. Input code and hit Enter: ");
         try {
             String code = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
-            Config.getInstance().setAccessToken(code);
+            configDao.write(Config.ACCES_TOKEN, code);
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(-1);
@@ -65,7 +71,7 @@ public class DropboxService {
     }
 
     public void createClient() {
-        String accessToken = Config.getInstance().getAccessToken();
+        String accessToken = configDao.read(Config.ACCES_TOKEN);
         client = new DbxClientV2(config, accessToken);
     }
 
@@ -95,7 +101,7 @@ public class DropboxService {
     }
 
     public Thread createPollingThread() {
-        return new Thread(new DropboxPolling(client));
+        return new Thread(new DropboxPolling(client, configDao));
     }
 
 }
