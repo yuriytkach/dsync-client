@@ -52,9 +52,9 @@ public class DSyncClient {
 
         CompletableFuture<Void> greetingFuture = CompletableFuture.runAsync(()->greeting());
         
-        //if (firstRun) {
+        if (firstRun) {
             greetingFuture = initialSync(greetingFuture);
-        //}
+        }
         
         CompletableFuture<Void> pollFuture = runPolling(greetingFuture);
 
