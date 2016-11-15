@@ -16,28 +16,27 @@ package com.yet.dsync.service;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.DeletedMetadata;
-import com.dropbox.core.v2.files.FileMetadata;
-import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.ListFolderLongpollResult;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.yet.dsync.dao.ConfigDao;
-import com.yet.dsync.dto.UserData;
 import com.yet.dsync.util.Config;
+import com.yet.dsync.util.DropboxUtil;
 
 public class DropboxPolling implements Runnable {
 
     private DbxClientV2 client;
     private ConfigDao configDao;
+    private DropboxChange changeListener;
 
-    public DropboxPolling(DbxClientV2 client, ConfigDao configDao) {
+    public DropboxPolling(DbxClientV2 client, ConfigDao configDao, DropboxChange changeListener) {
         this.client = client;
         this.configDao = configDao;
+        this.changeListener = changeListener;
     }
 
     @Override
     public void run() {
-        String cursor = configDao.read(Config.CURSOR);
+        String cursor = readCursor();
 
         try {
 
@@ -46,20 +45,10 @@ public class DropboxPolling implements Runnable {
             while (!Thread.interrupted()) {
                 cursor = listFolderResult.getCursor();
                 saveCursor(cursor);
-
-                listFolderResult.getEntries().forEach(e -> {
-                    if (e instanceof DeletedMetadata) {
-                        System.out.println("DELETE " + e.getPathLower());
-                    } else {
-                        if (e instanceof FolderMetadata) {
-                            System.out.println("FOLDER " + e.getPathLower());
-                        } else {
-                            FileMetadata fileMetadata = (FileMetadata) e;
-                            System.out.println("FILE   " + e.getPathLower() + " ("
-                                    + UserData.humanReadableByteCount(fileMetadata.getSize()) + ")");
-                        }
-                    }
-                });
+                
+                listFolderResult.getEntries().stream()
+                    .map(DropboxUtil::convertMetadata)
+                    .forEach(changeListener::processChange);
 
                 if (listFolderResult.getHasMore()) {
                     listFolderResult = client.files().listFolderContinue(cursor);
@@ -88,6 +77,10 @@ public class DropboxPolling implements Runnable {
         } catch (DbxException e1) {
             e1.printStackTrace();
         }
+    }
+
+    private String readCursor() {
+        return configDao.read(Config.CURSOR);
     }
 
     private void saveCursor(String cursor) {

@@ -100,8 +100,8 @@ public class DropboxService {
         }
     }
 
-    public Thread createPollingThread() {
-        return new Thread(new DropboxPolling(client, configDao));
+    public Thread createPollingThread(DropboxChange changeListener) {
+        return new Thread(new DropboxPolling(client, configDao, changeListener));
     }
 
 }

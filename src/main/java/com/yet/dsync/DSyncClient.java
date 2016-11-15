@@ -109,7 +109,7 @@ public class DSyncClient {
     }
 
     private void run() {
-        Thread polling = dropboxService.createPollingThread();
+        Thread polling = dropboxService.createPollingThread(System.out::println);
 
         polling.start();
 
