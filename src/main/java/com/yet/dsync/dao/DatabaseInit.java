@@ -47,6 +47,7 @@ public class DatabaseInit {
     public void createTables(Connection connection) {
         try {
             createConfigTable(connection);
+            createMetadataTable(connection);
             
             System.out.println("Tables created successfully");
         } catch (SQLException e) {
@@ -56,11 +57,13 @@ public class DatabaseInit {
 
     private void createConfigTable(Connection connection) throws SQLException {
         Statement stmt = connection.createStatement();
-        String sql = "CREATE TABLE CONFIG (" +
-                     "KEY    TEXT PRIMARY KEY  NOT NULL," +
-                     "VALUE  TEXT              NOT NULL" +
-                     ")"; 
-        stmt.executeUpdate(sql);
+        stmt.executeUpdate(ConfigDao.CREATE_TABLE_STATEMENT);
+        stmt.close();
+    }
+    
+    private void createMetadataTable(Connection connection) throws SQLException {
+        Statement stmt = connection.createStatement();
+        stmt.executeUpdate(MetadataDao.CREATE_TABLE_STATEMENT);
         stmt.close();
     }
 

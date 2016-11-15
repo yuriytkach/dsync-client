@@ -28,6 +28,11 @@ public class ConfigDao {
     private static final String INSERT_STATEMENT = "INSERT INTO CONFIG (KEY,VALUE) VALUES (?,?)";
     private static final String UPDATE_STATEMENT = "UPDATE CONFIG SET VALUE = ? WHERE KEY = ?";
     
+    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE CONFIG (" +
+                                                            "KEY    TEXT PRIMARY KEY  NOT NULL," +
+                                                            "VALUE  TEXT              NOT NULL" +
+                                                            ")"; 
+    
     private PreparedStatement readStatement;
     private PreparedStatement insertStatement;
     private PreparedStatement updateStatement;

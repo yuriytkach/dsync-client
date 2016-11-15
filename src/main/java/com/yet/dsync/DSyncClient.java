@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
+import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.service.DropboxService;
 import com.yet.dsync.service.LocalFolderService;
@@ -35,6 +36,7 @@ public class DSyncClient {
     private LocalFolderService localFolderService;
     
     private ConfigDao configDao;
+    private MetadataDao metadataDao;
 
     private void start() {
         boolean firstRun = isFirstRun();
@@ -50,9 +52,9 @@ public class DSyncClient {
 
         CompletableFuture<Void> greetingFuture = CompletableFuture.runAsync(()->greeting());
         
-        if (firstRun) {
+        //if (firstRun) {
             greetingFuture = initialSync(greetingFuture);
-        }
+        //}
         
         CompletableFuture<Void> pollFuture = runPolling(greetingFuture);
 
@@ -81,6 +83,7 @@ public class DSyncClient {
         }
         
         configDao = new ConfigDao(connection);
+        metadataDao = new MetadataDao(connection);
     }
     
     private void initServices() {
@@ -124,7 +127,10 @@ public class DSyncClient {
     }
     
     private CompletableFuture<Void> initialSync(CompletableFuture<Void> prevFuture) {
-        Runnable syncThread = dropboxService.createInitialSyncThread(System.out::println);
+        Runnable syncThread = dropboxService.createInitialSyncThread(fileData -> {
+            System.out.println(fileData);
+            metadataDao.write(fileData);
+        });
         return prevFuture.thenRunAsync(syncThread);
     }
 
