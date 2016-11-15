@@ -36,6 +36,8 @@ public class DropboxPolling implements Runnable {
 
     @Override
     public void run() {
+        System.out.println("Started Dropbox polling...");
+        
         String cursor = readCursor();
 
         try {

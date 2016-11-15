@@ -26,12 +26,14 @@ import com.dropbox.core.DbxWebAuth;
 import com.dropbox.core.DbxWebAuth.Request;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.ListFolderGetLatestCursorResult;
+import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
+import com.yet.dsync.util.DropboxUtil;
 
 public class DropboxService {
 
@@ -100,8 +102,38 @@ public class DropboxService {
         }
     }
 
-    public Thread createPollingThread(DropboxChange changeListener) {
-        return new Thread(new DropboxPolling(client, configDao, changeListener));
+    public Runnable createPollingThread(DropboxChange changeListener) {
+        return new DropboxPolling(client, configDao, changeListener);
+    }
+    
+    public Runnable createInitialSyncThread(DropboxChange changeListener) {
+        return ()->{
+            try {
+                ListFolderResult listFolderResult = client.files().listFolderBuilder("")
+                        .withRecursive(Boolean.TRUE).start();
+                
+                String cursor = listFolderResult.getCursor();
+                configDao.write(Config.CURSOR, cursor);
+                
+                listFolderResult.getEntries().stream()
+                    .map(DropboxUtil::convertMetadata)
+                    .forEach(changeListener::processChange);
+                
+                while (listFolderResult.getHasMore()) {
+                    listFolderResult = client.files().listFolderContinue(cursor);
+                    
+                    cursor = listFolderResult.getCursor();
+                    configDao.write(Config.CURSOR, cursor);
+                    
+                    listFolderResult.getEntries().stream()
+                        .map(DropboxUtil::convertMetadata)
+                        .forEach(changeListener::processChange);
+                }
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        };
     }
 
 }

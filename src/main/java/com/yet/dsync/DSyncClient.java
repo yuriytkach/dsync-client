@@ -16,11 +16,11 @@ package com.yet.dsync;
 
 import java.io.File;
 import java.sql.Connection;
+import java.util.concurrent.CompletableFuture;
 
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dto.UserData;
-import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.service.DropboxService;
 import com.yet.dsync.service.LocalFolderService;
 import com.yet.dsync.util.Config;
@@ -43,13 +43,20 @@ public class DSyncClient {
         initServices();
         
         if (firstRun) {
-            initialStart();
+            initialStart();            
         } else {
             normalStart();
         }
 
-        greeting();
-        run();
+        CompletableFuture<Void> greetingFuture = CompletableFuture.runAsync(()->greeting());
+        
+        if (firstRun) {
+            greetingFuture = initialSync(greetingFuture);
+        }
+        
+        CompletableFuture<Void> pollFuture = runPolling(greetingFuture);
+
+        pollFuture.join();
     }
 
     private boolean isFirstRun() {
@@ -88,11 +95,7 @@ public class DSyncClient {
         dropboxService.createConfig();
         dropboxService.authenticate();
         dropboxService.createClient();
-        String cursor = dropboxService.retrieveLatestCursor();
-        configDao.write(Config.CURSOR, cursor);
 
-        System.out.println("Got latest cursor");
-        
         localFolderService.setupLocalFolder();
     }
 
@@ -106,30 +109,28 @@ public class DSyncClient {
 
         System.out.println("Hello, " + userData.getUserName());
         System.out.println("Used storage " + userData.getUsedBytesDisplay() + " of " + userData.getAvailBytesDisplay());
-    }
-
-    private void run() {
-        Thread polling = dropboxService.createPollingThread(System.out::println);
-
-        polling.start();
-
+        
         System.out.println();
         System.out.println("Client is running. Use Ctrl+c to kill it.");
 
         printWarning();
-
-        try {
-            polling.join();
-        } catch (InterruptedException e) {
-            throw new DSyncClientException(e);
-        }
     }
-
+    
     private void printWarning() {
         System.out.println();
         System.out.println(
                 "(Note. The client does not do much. For now it only logs events that happen in Dropbox folder on server)");
         System.out.println();
+    }
+    
+    private CompletableFuture<Void> initialSync(CompletableFuture<Void> prevFuture) {
+        Runnable syncThread = dropboxService.createInitialSyncThread(System.out::println);
+        return prevFuture.thenRunAsync(syncThread);
+    }
+
+    private CompletableFuture<Void> runPolling(CompletableFuture<Void> prevFuture) {
+        Runnable pollThread = dropboxService.createPollingThread(System.out::println);
+        return prevFuture.thenRunAsync(pollThread);
     }
 
 }
