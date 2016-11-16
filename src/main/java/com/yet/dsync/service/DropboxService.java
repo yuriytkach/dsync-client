@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import com.dropbox.core.DbxAppInfo;
+import com.dropbox.core.DbxAuthFinish;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.DbxRequestConfig.Builder;
@@ -51,9 +52,10 @@ public class DropboxService {
     }
 
     public void authenticate() {
-        final String APP_KEY = "nysa3bywhz237k3";
-
-        DbxAppInfo appInfo = new DbxAppInfo(APP_KEY, "none");
+        final String APP_KEY = "YOUR APP KEY";
+        final String APP_SECRET = "YOUR APP SECRET";
+        
+        DbxAppInfo appInfo = new DbxAppInfo(APP_KEY, APP_SECRET);
 
         Request request = DbxWebAuth.newRequestBuilder().withNoRedirect().build();
         DbxWebAuth webAuth = new DbxWebAuth(config, appInfo);
@@ -65,10 +67,16 @@ public class DropboxService {
         System.out.print("4. Input code and hit Enter: ");
         try {
             String code = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
-            configDao.write(Config.ACCES_TOKEN, code);
+            
+            DbxAuthFinish finish = webAuth.finishFromCode(code);
+            configDao.write(Config.ACCES_TOKEN, finish.getAccessToken());
+            
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(-1);
+        } catch (DbxException e) {
+            System.err.println("Failed to authorize: " + e.getLocalizedMessage());
+            System.exit(-2);
         }
     }
 
