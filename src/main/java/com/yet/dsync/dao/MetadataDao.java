@@ -14,12 +14,17 @@
 
 package com.yet.dsync.dao;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collection;
+import java.util.LinkedList;
 
 import com.yet.dsync.dto.FileData;
 import com.yet.dsync.exception.DSyncClientException;
@@ -27,24 +32,51 @@ import com.yet.dsync.exception.DSyncClientException;
 public class MetadataDao {
 
     private static final String SELECT_BY_ID_STATEMENT = "SELECT * FROM METADATA WHERE ID = ?";
-    private static final String INSERT_STATEMENT = "INSERT INTO METADATA (ID,PATH,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?)";
+    
+    private static final String SELECT_NOT_LOADED_STATEMENT = "SELECT * FROM METADATA WHERE LOADED = 0";
+    
+    private static final String INSERT_STATEMENT = "INSERT INTO METADATA (ID,PATH,LOADED,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?,?)";
+    
+    private static final String UPDATE_LOADED_STATEMENT = "UPDATE METADATA SET LOADED = ? WHERE ID = ?";
+    
+    private static final String UPDATE_FIELDS_STATEMENT = "UPDATE METADATA SET PATH = ?,"
+                                                                + "REV = ?,"
+                                                                + "SIZE = ?,"
+                                                                + "SRVDATE = ?,"
+                                                                + "CLIDATE = ?"
+                                                                + " WHERE ID = ?";
     
     public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE METADATA (" +
                                                             "ID       TEXT PRIMARY KEY  NOT NULL," +
                                                             "PATH     TEXT              NOT NULL," +
+                                                            "LOADED   INTEGER           NOT NULL," +
                                                             "REV      TEXT," +
                                                             "SIZE     INTEGER," +
                                                             "SRVDATE  INTEGER," +
                                                             "CLIDATE  INTEGER" +
                                                             ")"; 
     
-    private PreparedStatement readStatement;
-    private PreparedStatement insertStatement;
+    private static final int COL_ID = 1;
+    private static final int COL_PATH = COL_ID+1;
+    private static final int COL_LOADED = COL_PATH+1;
+    private static final int COL_REV = COL_LOADED+1;
+    private static final int COL_SIZE = COL_REV+1;
+    private static final int COL_SRVDATE = COL_SIZE+1;
+    private static final int COL_CLIDATE = COL_SRVDATE+1;
+    
+    private final PreparedStatement readStatement;
+    private final PreparedStatement readNotLoadedStatement;
+    private final PreparedStatement insertStatement;
+    private final PreparedStatement updateLoadedStatement;
+    private final PreparedStatement updateFieldsStatement;
 
     public MetadataDao(Connection connection) {
         try {
             readStatement = connection.prepareStatement(SELECT_BY_ID_STATEMENT);
+            readNotLoadedStatement = connection.prepareStatement(SELECT_NOT_LOADED_STATEMENT);
             insertStatement = connection.prepareStatement(INSERT_STATEMENT);
+            updateLoadedStatement = connection.prepareStatement(UPDATE_LOADED_STATEMENT);
+            updateFieldsStatement = connection.prepareStatement(UPDATE_FIELDS_STATEMENT);
         } catch (SQLException e) {
             throw new DSyncClientException(e);
         }
@@ -52,16 +84,11 @@ public class MetadataDao {
     
     public FileData read(String id) {
         try {
-            readStatement.setString(1, id);
+            readStatement.setString(COL_ID, id);
             
             ResultSet resultSet = readStatement.executeQuery();
             if (resultSet.next()) {
-                FileData.Builder builder = new FileData.Builder();
-                builder
-                    .id(resultSet.getString(1))
-                    .pathDisplay(resultSet.getString(2));
-                // TODO: Build other fields
-                return builder.build();
+                return buildFileData(resultSet);
             } else {
                 return null;
             }
@@ -69,39 +96,99 @@ public class MetadataDao {
             throw new DSyncClientException(e);
         }
     }
+
+    private FileData buildFileData(ResultSet resultSet) throws SQLException {
+        FileData.Builder builder = new FileData.Builder();
+        final BigDecimal size = resultSet.getBigDecimal(COL_SIZE);
+        builder
+            .id(resultSet.getString(COL_ID))
+            .pathDisplay(resultSet.getString(COL_PATH))
+            .rev(resultSet.getString(COL_REV))
+            .size(size != null ? size.longValue() : null)
+            .serverModified(longToDateTime(resultSet.getBigDecimal(COL_SRVDATE)))
+            .clientModified(longToDateTime(resultSet.getBigDecimal(COL_SRVDATE)));
+        return builder.build();
+    }
     
     public void write(FileData fileData) {
         try {
-            readStatement.setString(1, fileData.getId());
+            readStatement.setString(COL_ID, fileData.getId());
             
             ResultSet resultSet = readStatement.executeQuery();
             if (resultSet.next()) {
-                // TODO Update
-            } else {
-                insertStatement.setString(1, fileData.getId());
-                insertStatement.setString(2, fileData.getPathDisplay());
-                insertStatement.setString(3, fileData.getRev());
-                if (fileData.getSize() == null) {
-                    insertStatement.setNull(4, Types.BIGINT);
-                } else {
-                    insertStatement.setLong(4, fileData.getSize());
-                }
-                if (fileData.getServerModified() == null) {
-                    insertStatement.setNull(5, Types.BIGINT);
-                } else {
-                    insertStatement.setLong(5, fileData.getServerModified().atZone(ZoneId.of("GMT")).toInstant().toEpochMilli());
-                }
+                updateFieldsStatement.setString(1, fileData.getPathDisplay());
+                setStatementParams(updateFieldsStatement, 2, fileData.getRev(), Types.VARCHAR);                
+                setStatementParams(updateFieldsStatement, 3, fileData.getSize(), Types.BIGINT);
+                setStatementParams(updateFieldsStatement, 4, dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
+                setStatementParams(updateFieldsStatement, 5, dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
                 
-                if (fileData.getClientModified() == null) {
-                    insertStatement.setNull(6, Types.BIGINT);
-                } else {
-                    insertStatement.setLong(6, fileData.getClientModified().atZone(ZoneId.of("GMT")).toInstant().toEpochMilli());
-                }
+                updateFieldsStatement.setString(6, fileData.getId());
+                
+            } else {
+                insertStatement.setString(COL_ID, fileData.getId());
+                insertStatement.setString(COL_PATH, fileData.getPathDisplay());
+                insertStatement.setBoolean(COL_LOADED, false);
+                setStatementParams(insertStatement, COL_REV, fileData.getRev(), Types.VARCHAR);                
+                setStatementParams(insertStatement, COL_SIZE, fileData.getSize(), Types.BIGINT);
+                setStatementParams(insertStatement, COL_SRVDATE, dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
+                setStatementParams(insertStatement, COL_CLIDATE, dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
                 
                 insertStatement.executeUpdate();
             }
         } catch (SQLException e) {
             throw new DSyncClientException(e);
+        }
+    }
+    
+    public Collection<FileData> readAllNotLoaded() {
+        try {
+            ResultSet resultSet = readNotLoadedStatement.executeQuery();
+            
+            Collection<FileData> allFileData = new LinkedList<>();
+            
+            while (resultSet.next()) {
+                FileData fileData = buildFileData(resultSet);
+                allFileData.add(fileData);
+            }
+            
+            return allFileData;
+        } catch (SQLException e) {
+            throw new DSyncClientException(e);
+        }
+    }
+    
+    public void writeLoadedFlag(String id, boolean loaded) {
+        try {
+            updateLoadedStatement.setBoolean(1, loaded);
+            updateLoadedStatement.setString(2, id);
+            
+            updateLoadedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new DSyncClientException(e);
+        }
+    }
+    
+    private void setStatementParams(PreparedStatement statement, int column, Object data, int sqlType) throws SQLException {
+        if (data == null) {
+            statement.setNull(column, sqlType);
+        } else {
+            statement.setObject(column, data, sqlType);
+        }
+    }
+
+    private Long dateTimeToLong(LocalDateTime dateTime) {
+        if (dateTime == null) {
+            return null;
+        } else {
+            return dateTime.atZone(ZoneId.of("GMT")).toInstant().toEpochMilli();
+        }
+    }
+    
+    private LocalDateTime longToDateTime(BigDecimal epochMilli) {
+        if (epochMilli == null) {
+            return null;
+        } else {
+            return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli.longValue()), ZoneId.of("GMT"));
         }
     }
 
