@@ -105,6 +105,8 @@ public class DSyncClient {
     private void normalStart() {
         dropboxService.createConfig();
         dropboxService.createClient();
+        
+        localFolderService.validateLocalDir();
     }
 
     private void greeting() {
@@ -128,6 +130,7 @@ public class DSyncClient {
     
     private CompletableFuture<Void> initialSync(CompletableFuture<Void> prevFuture) {
         Runnable syncThread = dropboxService.createInitialSyncThread(fileData -> {
+            // TODO: Needs optimization for batch processing
             System.out.println(fileData);
             metadataDao.write(fileData);
         });

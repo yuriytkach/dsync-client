@@ -14,7 +14,9 @@ import com.yet.dsync.util.Config;
 public class LocalFolderService {
 
     private ConfigDao configDao;
-
+    
+    private File localDir;
+    
     public LocalFolderService(ConfigDao configDao) {
         this.configDao = configDao;
     }
@@ -45,6 +47,28 @@ public class LocalFolderService {
             }
         } catch (IOException e) {
             throw new DSyncClientException(e);
+        }
+    }
+    
+    public void validateLocalDir() {
+        String localDirPath = configDao.read(Config.LOCAL_DIR);
+        if (localDirPath == null) {
+            // TODO call setup
+            throw new DSyncClientException("No local dir set");
+        }
+        
+        localDir = new File(localDirPath);
+        if ( ! localDir.exists() ) {
+            // TODO call setup
+            throw new DSyncClientException("Local dir does not exists: " + localDir.getAbsolutePath());
+        }
+    }
+    
+    public void createFolder(String path) {
+        File folder = new File(localDir.getAbsolutePath() + path);
+        
+        if ( ! folder.mkdirs() ) {
+            throw new DSyncClientException("Failed in creating directories at " + folder.getAbsolutePath());
         }
     }
 
