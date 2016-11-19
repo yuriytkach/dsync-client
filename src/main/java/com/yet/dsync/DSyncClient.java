@@ -23,6 +23,7 @@ import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.service.DropboxService;
+import com.yet.dsync.service.DownloadService;
 import com.yet.dsync.service.LocalFolderService;
 import com.yet.dsync.util.Config;
 
@@ -34,6 +35,8 @@ public class DSyncClient {
 
     private DropboxService dropboxService;
     private LocalFolderService localFolderService;
+    
+    private DownloadService downloadService;
     
     private ConfigDao configDao;
     private MetadataDao metadataDao;
@@ -56,8 +59,11 @@ public class DSyncClient {
             greetingFuture = initialSync(greetingFuture);
         }
         
-        CompletableFuture<Void> pollFuture = runPolling(greetingFuture);
-
+        CompletableFuture<Void> downloadAllNotLoadedFuture = greetingFuture.thenRunAsync(() -> downloadService.downloadAllNotLoaded());
+        
+        CompletableFuture<Void> pollFuture = runPolling(downloadAllNotLoadedFuture);
+        
+        
         pollFuture.join();
     }
 
@@ -89,6 +95,8 @@ public class DSyncClient {
     private void initServices() {
         localFolderService = new LocalFolderService(configDao);
         dropboxService = new DropboxService(configDao);
+        
+        downloadService = new DownloadService(metadataDao, localFolderService);
     }
 
     private void initialStart() {
