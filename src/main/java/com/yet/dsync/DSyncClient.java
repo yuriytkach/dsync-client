@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
+import com.yet.dsync.dto.ChangeType;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.service.DownloadService;
 import com.yet.dsync.service.DropboxService;
@@ -148,9 +149,13 @@ public class DSyncClient {
     private CompletableFuture<Void> runPolling(CompletableFuture<Void> prevFuture) {
         Runnable pollThread = dropboxService.createPollingThread(fd -> {
             System.out.println(fd);
-            if (fd.getId() != null ) {
+            if (ChangeType.DELETE.equals(fd.getChangeType()) ) {
+                localFolderService.deleteFileOrFolder(fd.getPathDisplay());
+                metadataDao.deleteByPath(fd.getPathDisplay());
+                System.out.println("DELETED " + fd.getPathDisplay());
+            } else {
                 downloadService.scheduleDownload(fd);
-            }    
+            }
         });
         return prevFuture.thenRunAsync(pollThread);
     }

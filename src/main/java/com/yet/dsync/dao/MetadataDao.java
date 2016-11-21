@@ -46,6 +46,8 @@ public class MetadataDao {
                                                                 + "CLIDATE = ?"
                                                                 + " WHERE ID = ?";
     
+    private static final String DELETE_BY_PATH_STATEMENT = "DELETE FROM METADATA WHERE PATH = ?";
+    
     public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE METADATA (" +
                                                             "ID       TEXT PRIMARY KEY  NOT NULL," +
                                                             "PATH     TEXT              NOT NULL," +
@@ -69,6 +71,7 @@ public class MetadataDao {
     private final PreparedStatement insertStatement;
     private final PreparedStatement updateLoadedStatement;
     private final PreparedStatement updateFieldsStatement;
+    private final PreparedStatement deleteByPathStatement;
 
     public MetadataDao(Connection connection) {
         try {
@@ -77,6 +80,7 @@ public class MetadataDao {
             insertStatement = connection.prepareStatement(INSERT_STATEMENT);
             updateLoadedStatement = connection.prepareStatement(UPDATE_LOADED_STATEMENT);
             updateFieldsStatement = connection.prepareStatement(UPDATE_FIELDS_STATEMENT);
+            deleteByPathStatement = connection.prepareStatement(DELETE_BY_PATH_STATEMENT);
         } catch (SQLException e) {
             throw new DSyncClientException(e);
         }
@@ -163,6 +167,16 @@ public class MetadataDao {
             updateLoadedStatement.setString(2, id);
             
             updateLoadedStatement.executeUpdate();
+        } catch (SQLException e) {
+            throw new DSyncClientException(e);
+        }
+    }
+    
+    public void deleteByPath(String path) {
+        try {
+            deleteByPathStatement.setString(1, path);
+            
+            deleteByPathStatement.executeUpdate();
         } catch (SQLException e) {
             throw new DSyncClientException(e);
         }
