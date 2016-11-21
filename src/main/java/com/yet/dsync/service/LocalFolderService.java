@@ -75,5 +75,9 @@ public class LocalFolderService {
             }
         }
     }
+    
+    public File buildFileObject(String path) {
+        return new File(localDir.getAbsolutePath() + path);
+    }
 
 }

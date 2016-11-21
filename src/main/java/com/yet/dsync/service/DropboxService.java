@@ -17,9 +17,11 @@ package com.yet.dsync.service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.FileOutputStream;
 
 import com.dropbox.core.DbxAppInfo;
 import com.dropbox.core.DbxAuthFinish;
+import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.DbxRequestConfig.Builder;
@@ -30,6 +32,7 @@ import com.dropbox.core.v2.files.ListFolderGetLatestCursorResult;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
+import com.dropbox.core.v2.files.FileMetadata;
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;
@@ -52,8 +55,8 @@ public class DropboxService {
     }
 
     public void authenticate() {
-        final String APP_KEY = "YOUR APP KEY";
-        final String APP_SECRET = "YOUR APP SECRET";
+        final String APP_KEY = "YOUR_APP_KEY";
+        final String APP_SECRET = "YOUR_APP_SECRET";
         
         DbxAppInfo appInfo = new DbxAppInfo(APP_KEY, APP_SECRET);
 
@@ -142,6 +145,18 @@ public class DropboxService {
                 e.printStackTrace();
             }
         };
+    }
+    
+    public void downloadFile(String path, FileOutputStream fileOutputStream) {
+        try {
+            
+            DbxDownloader<FileMetadata> downloader = client.files().download(path);
+            
+            downloader.download(fileOutputStream);
+            
+        } catch (Exception ex) {
+            throw new DSyncClientException(ex);
+        }
     }
 
 }

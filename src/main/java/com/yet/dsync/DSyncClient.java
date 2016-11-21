@@ -96,7 +96,7 @@ public class DSyncClient {
         localFolderService = new LocalFolderService(configDao);
         dropboxService = new DropboxService(configDao);
         
-        downloadService = new DownloadService(metadataDao, localFolderService);
+        downloadService = new DownloadService(metadataDao, localFolderService, dropboxService);
     }
 
     private void initialStart() {
@@ -146,7 +146,12 @@ public class DSyncClient {
     }
 
     private CompletableFuture<Void> runPolling(CompletableFuture<Void> prevFuture) {
-        Runnable pollThread = dropboxService.createPollingThread(System.out::println);
+        Runnable pollThread = dropboxService.createPollingThread(fd -> {
+            System.out.println(fd);
+            if (fd.getId() != null ) {
+                downloadService.scheduleDownload(fd);
+            }    
+        });
         return prevFuture.thenRunAsync(pollThread);
     }
 

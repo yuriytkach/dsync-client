@@ -14,27 +14,42 @@
 
 package com.yet.dsync.service;
 
+import java.io.File;
+import java.io.FileOutputStream;
+
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import com.yet.dsync.dto.FileData;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.service.LocalFolderService;
+import com.yet.dsync.exception.DSyncClientException;
 
 public class DownloadService {
     
+    private static final int THREAD_NUMBER = 5;
+    
     private final MetadataDao metadaDao;
     private final LocalFolderService localFolderService;
+    private final DropboxService dropboxService;
     
-    private final BlockingQueue<FileData> downloadQueue; 
+    private final BlockingQueue<FileData> downloadQueue;
     
-    public DownloadService(MetadataDao metadaDao, LocalFolderService localFolderService) {
+    private final ExecutorService executorService;
+    
+    public DownloadService(MetadataDao metadaDao, LocalFolderService localFolderService, DropboxService dropboxService) {
         this.metadaDao = metadaDao;
         this.localFolderService = localFolderService;
+        this.dropboxService = dropboxService;
         
         this.downloadQueue = createDownloadQueue();
+        this.executorService = Executors.newFixedThreadPool(THREAD_NUMBER);
+        
+        initDownloadThreads();
     }
     
     /**
@@ -59,13 +74,54 @@ public class DownloadService {
         });
     }
     
+    private void initDownloadThreads() {
+        for (int i=0; i < THREAD_NUMBER; i++) {
+            executorService.submit(() -> {
+                while (!Thread.interrupted()) {
+                    try {
+                        FileData fileData = downloadQueue.take();
+                        downloadData(fileData);
+                    } catch (Exception e) {
+                        System.err.println("Failed to download file: " + e.getMessage());
+                    }
+                }
+            });
+        }
+    }
+    
+    private void downloadData(FileData fileData) {
+        if (fileData.getRev() == null) {
+            localFolderService.createFolder(fileData.getPathDisplay());
+            System.out.println("LOCAL_DIR " + fileData.getPathDisplay());
+        } else {
+            File file = localFolderService.buildFileObject(fileData.getPathDisplay());
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                dropboxService.downloadFile(fileData.getPathDisplay(), fos);
+            } catch (Exception e) {
+                throw new DSyncClientException(e);
+            }
+            System.out.println("DOWNLOADED " + fileData.getPathDisplay());
+        }
+        metadaDao.writeLoadedFlag(fileData.getId(), true);
+    }
+    
     public void downloadAllNotLoaded() {
         Collection<FileData> allNotLoaded = metadaDao.readAllNotLoaded();
-        
-        allNotLoaded.stream()
-            .filter(fd -> fd.getRev() == null)
-            .map(FileData::getPathDisplay)
-            .forEach(localFolderService::createFolder);
+        allNotLoaded.forEach(f -> {
+            try {
+                downloadQueue.put(f);
+            } catch (Exception e) {
+                throw new DSyncClientException(e);
+            }
+        });
+    }
+    
+    public void scheduleDownload(FileData fileData) {
+        try {
+            downloadQueue.put(fileData);
+        } catch (Exception e) {
+            throw new DSyncClientException(e);
+        }
     }
 
 }
