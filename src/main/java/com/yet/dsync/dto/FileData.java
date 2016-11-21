@@ -23,6 +23,8 @@ public class FileData {
         
         private String pathDisplay;
         
+        private String pathLower;
+        
         private String id;
         
         private String rev;
@@ -40,6 +42,11 @@ public class FileData {
         
         public Builder pathDisplay(String pathDisplay) {
             this.pathDisplay = pathDisplay;
+            return this;
+        }
+        
+        public Builder pathLower(String pathLower) {
+            this.pathLower = pathLower;
             return this;
         }
         
@@ -77,6 +84,8 @@ public class FileData {
     
     private final String pathDisplay;
     
+    private final String pathLower;
+    
     private final String id;
     
     private final String rev;
@@ -90,11 +99,20 @@ public class FileData {
     private FileData(Builder builder) {
         this.changeType = builder.changeType;
         this.pathDisplay = builder.pathDisplay;
+        this.pathLower = builder.pathLower;
         this.id = builder.id;
         this.rev = builder.rev;
         this.size = builder.size;
         this.serverModified = builder.serverModified;
         this.clientModified = builder.clientModified;
+    }
+    
+    public boolean isFile() {
+        return rev != null;
+    }
+    
+    public boolean isDirectory() {
+        return id != null && rev == null;
     }
 
     public ChangeType getChangeType() {
@@ -103,6 +121,10 @@ public class FileData {
 
     public String getPathDisplay() {
         return pathDisplay;
+    }
+    
+    public String getPathLower() {
+        return pathLower;
     }
 
     public String getId() {
