@@ -22,7 +22,9 @@ public enum Config {
 
     CURSOR,
 
-    LOCAL_DIR;
+    LOCAL_DIR,
+    
+    INITIAL_SYNC;
     
     public static final String DB_NAME  = "dsync.db";
 

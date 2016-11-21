@@ -23,6 +23,9 @@ import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 
 public class ConfigDao {
+    
+    public static final String YES = "yes";
+    public static final String NO = "no";
 
     private static final String SELECT_STATEMENT = "SELECT VALUE FROM CONFIG WHERE KEY = ?";
     private static final String INSERT_STATEMENT = "INSERT INTO CONFIG (KEY,VALUE) VALUES (?,?)";
