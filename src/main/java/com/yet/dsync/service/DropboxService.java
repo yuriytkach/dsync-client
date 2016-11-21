@@ -118,27 +118,32 @@ public class DropboxService {
     }
     
     public Runnable createInitialSyncThread(DropboxChange changeListener) {
-        return ()->{
+        return ()-> {
             try {
-                ListFolderResult listFolderResult = client.files().listFolderBuilder("")
+                String cursor = configDao.read(Config.CURSOR);
+                ListFolderResult listFolderResult = null;
+                
+                if (cursor.isEmpty()) {
+                    listFolderResult = client.files().listFolderBuilder("")
                         .withRecursive(Boolean.TRUE).start();
                 
-                String cursor = listFolderResult.getCursor();
-                configDao.write(Config.CURSOR, cursor);
-                
-                listFolderResult.getEntries().stream()
-                    .map(DropboxUtil::convertMetadata)
-                    .forEach(changeListener::processChange);
-                
-                while (listFolderResult.getHasMore()) {
-                    listFolderResult = client.files().listFolderContinue(cursor);
+                    listFolderResult.getEntries().stream()
+                        .map(DropboxUtil::convertMetadata)
+                        .forEach(changeListener::processChange);
                     
                     cursor = listFolderResult.getCursor();
                     configDao.write(Config.CURSOR, cursor);
+                }
+                
+                while (listFolderResult == null || listFolderResult.getHasMore()) {
+                    listFolderResult = client.files().listFolderContinue(cursor);
                     
                     listFolderResult.getEntries().stream()
                         .map(DropboxUtil::convertMetadata)
                         .forEach(changeListener::processChange);
+                    
+                    cursor = listFolderResult.getCursor();
+                    configDao.write(Config.CURSOR, cursor);
                 }
                 
             } catch (Exception e) {

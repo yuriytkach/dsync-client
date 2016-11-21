@@ -35,11 +35,12 @@ public class MetadataDao {
     
     private static final String SELECT_NOT_LOADED_STATEMENT = "SELECT * FROM METADATA WHERE LOADED = 0";
     
-    private static final String INSERT_STATEMENT = "INSERT INTO METADATA (ID,PATH,LOADED,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?,?)";
+    private static final String INSERT_STATEMENT = "INSERT INTO METADATA (ID,PATH,PLOWER,LOADED,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?,?,?)";
     
     private static final String UPDATE_LOADED_STATEMENT = "UPDATE METADATA SET LOADED = ? WHERE ID = ?";
     
     private static final String UPDATE_FIELDS_STATEMENT = "UPDATE METADATA SET PATH = ?,"
+                                                                + "PLOWER = ?,"
                                                                 + "REV = ?,"
                                                                 + "SIZE = ?,"
                                                                 + "SRVDATE = ?,"
@@ -51,6 +52,7 @@ public class MetadataDao {
     public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE METADATA (" +
                                                             "ID       TEXT PRIMARY KEY  NOT NULL," +
                                                             "PATH     TEXT              NOT NULL," +
+                                                            "PLOWER   TEXT              NOT NULL," +
                                                             "LOADED   INTEGER           NOT NULL," +
                                                             "REV      TEXT," +
                                                             "SIZE     INTEGER," +
@@ -60,7 +62,8 @@ public class MetadataDao {
     
     private static final int COL_ID = 1;
     private static final int COL_PATH = COL_ID+1;
-    private static final int COL_LOADED = COL_PATH+1;
+    private static final int COL_PATH_LOWER = COL_PATH+1;
+    private static final int COL_LOADED = COL_PATH_LOWER+1;
     private static final int COL_REV = COL_LOADED+1;
     private static final int COL_SIZE = COL_REV+1;
     private static final int COL_SRVDATE = COL_SIZE+1;
@@ -107,6 +110,7 @@ public class MetadataDao {
         builder
             .id(resultSet.getString(COL_ID))
             .pathDisplay(resultSet.getString(COL_PATH))
+            .pathLower(resultSet.getString(COL_PATH_LOWER))
             .rev(resultSet.getString(COL_REV))
             .size(size != null ? size.longValue() : null)
             .serverModified(longToDateTime(resultSet.getBigDecimal(COL_SRVDATE)))
@@ -121,16 +125,18 @@ public class MetadataDao {
             ResultSet resultSet = readStatement.executeQuery();
             if (resultSet.next()) {
                 updateFieldsStatement.setString(1, fileData.getPathDisplay());
-                setStatementParams(updateFieldsStatement, 2, fileData.getRev(), Types.VARCHAR);                
-                setStatementParams(updateFieldsStatement, 3, fileData.getSize(), Types.BIGINT);
-                setStatementParams(updateFieldsStatement, 4, dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
-                setStatementParams(updateFieldsStatement, 5, dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
+                updateFieldsStatement.setString(2, fileData.getPathLower());
+                setStatementParams(updateFieldsStatement, 3, fileData.getRev(), Types.VARCHAR);                
+                setStatementParams(updateFieldsStatement, 4, fileData.getSize(), Types.BIGINT);
+                setStatementParams(updateFieldsStatement, 5, dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
+                setStatementParams(updateFieldsStatement, 6, dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
                 
                 updateFieldsStatement.setString(6, fileData.getId());
                 
             } else {
                 insertStatement.setString(COL_ID, fileData.getId());
                 insertStatement.setString(COL_PATH, fileData.getPathDisplay());
+                insertStatement.setString(COL_PATH_LOWER, fileData.getPathLower());
                 insertStatement.setBoolean(COL_LOADED, false);
                 setStatementParams(insertStatement, COL_REV, fileData.getRev(), Types.VARCHAR);                
                 setStatementParams(insertStatement, COL_SIZE, fileData.getSize(), Types.BIGINT);

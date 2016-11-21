@@ -54,16 +54,16 @@ public class DSyncClient {
             normalStart();
         }
 
-        CompletableFuture<Void> greetingFuture = CompletableFuture.runAsync(()->greeting());
+        greeting();
         
-        if (firstRun) {
-            greetingFuture = initialSync(greetingFuture);
+        String initialSyncDone = configDao.read(Config.INITIAL_SYNC);
+        if ( ! ConfigDao.YES.equals(initialSyncDone) ) {
+            initialSync();
         }
         
-        CompletableFuture<Void> downloadAllNotLoadedFuture = greetingFuture.thenRunAsync(() -> downloadService.downloadAllNotLoaded());
+        downloadService.downloadAllNotLoaded();
         
-        CompletableFuture<Void> pollFuture = runPolling(downloadAllNotLoadedFuture);
-        
+        CompletableFuture<Void> pollFuture = runPolling();
         
         pollFuture.join();
     }
@@ -137,16 +137,18 @@ public class DSyncClient {
         System.out.println();
     }
     
-    private CompletableFuture<Void> initialSync(CompletableFuture<Void> prevFuture) {
+    private void initialSync() {
         Runnable syncThread = dropboxService.createInitialSyncThread(fileData -> {
             // TODO: Needs optimization for batch processing
             System.out.println(fileData);
             metadataDao.write(fileData);
         });
-        return prevFuture.thenRunAsync(syncThread);
+        syncThread.run();
+        
+        configDao.write(Config.INITIAL_SYNC, ConfigDao.YES);
     }
 
-    private CompletableFuture<Void> runPolling(CompletableFuture<Void> prevFuture) {
+    private CompletableFuture<Void> runPolling() {
         Runnable pollThread = dropboxService.createPollingThread(fd -> {
             System.out.println(fd);
             if (ChangeType.DELETE.equals(fd.getChangeType()) ) {
@@ -157,7 +159,7 @@ public class DSyncClient {
                 downloadService.scheduleDownload(fd);
             }
         });
-        return prevFuture.thenRunAsync(pollThread);
+        return CompletableFuture.runAsync(pollThread);
     }
 
 }

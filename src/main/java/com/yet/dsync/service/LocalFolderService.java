@@ -76,15 +76,17 @@ public class LocalFolderService {
     
     public void deleteFileOrFolder(String path) {
         File file = buildFileObject(path);
-        if (file.isDirectory()) {
-            try {
-                FileUtils.deleteDirectory(file);
-            } catch (Exception e) {
-                throw new DSyncClientException("Failed to delete directory: " + file.getAbsolutePath(), e);
-            }
-        } else {
-            if ( !file.delete() ) {
-                throw new DSyncClientException("Failed to delete file: " + file.getAbsolutePath());
+        if (file.exists()) {
+            if (file.isDirectory()) {
+                try {
+                    FileUtils.deleteDirectory(file);
+                } catch (Exception e) {
+                    throw new DSyncClientException("Failed to delete directory: " + file.getAbsolutePath(), e);
+                }
+            } else {
+                if ( !file.delete() ) {
+                    throw new DSyncClientException("Failed to delete file: " + file.getAbsolutePath());
+                }
             }
         }
     }
