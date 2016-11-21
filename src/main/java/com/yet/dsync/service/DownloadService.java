@@ -16,17 +16,14 @@ package com.yet.dsync.service;
 
 import java.io.File;
 import java.io.FileOutputStream;
-
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 
-import com.yet.dsync.dto.FileData;
 import com.yet.dsync.dao.MetadataDao;
-import com.yet.dsync.service.LocalFolderService;
+import com.yet.dsync.dto.FileData;
 import com.yet.dsync.exception.DSyncClientException;
 
 public class DownloadService {

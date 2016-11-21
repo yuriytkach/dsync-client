@@ -15,9 +15,9 @@
 package com.yet.dsync.service;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.FileOutputStream;
 
 import com.dropbox.core.DbxAppInfo;
 import com.dropbox.core.DbxAuthFinish;
@@ -28,11 +28,11 @@ import com.dropbox.core.DbxRequestConfig.Builder;
 import com.dropbox.core.DbxWebAuth;
 import com.dropbox.core.DbxWebAuth.Request;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderGetLatestCursorResult;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
-import com.dropbox.core.v2.files.FileMetadata;
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;

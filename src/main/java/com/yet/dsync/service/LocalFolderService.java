@@ -70,8 +70,6 @@ public class LocalFolderService {
         if ( ! folder.exists() ) {
             if ( ! folder.mkdirs() ) {
                 throw new DSyncClientException("Failed in creating directories at " + folder.getAbsolutePath());
-            } else {
-                System.out.println("LOCAL_DIR Created " + path);
             }
         }
     }

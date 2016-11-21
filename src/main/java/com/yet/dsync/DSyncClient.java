@@ -22,8 +22,8 @@ import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.UserData;
-import com.yet.dsync.service.DropboxService;
 import com.yet.dsync.service.DownloadService;
+import com.yet.dsync.service.DropboxService;
 import com.yet.dsync.service.LocalFolderService;
 import com.yet.dsync.util.Config;
 
