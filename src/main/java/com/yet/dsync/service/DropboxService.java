@@ -55,8 +55,8 @@ public class DropboxService {
     }
 
     public void authenticate() {
-        final String APP_KEY = "YOUR_APP_KEY";
-        final String APP_SECRET = "YOUR_APP_SECRET";
+        final String APP_KEY = System.getProperty("APP_KEY", "YOUR_APP_KEY");
+        final String APP_SECRET = System.getProperty("APP_SECRET", "YOUR_APP_SECRET");
         
         DbxAppInfo appInfo = new DbxAppInfo(APP_KEY, APP_SECRET);
 
