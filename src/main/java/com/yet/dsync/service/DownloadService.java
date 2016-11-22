@@ -90,10 +90,8 @@ public class DownloadService {
     }
     
     private void downloadData(FileData fileData) {
-        if (fileData.getRev() == null) {
-            localFolderService.createFolder(fileData.getPathDisplay());
-            System.out.println("LOCAL_DIR " + fileData.getPathDisplay());
-            metadaDao.writeLoadedFlag(fileData.getId(), true);
+        if (fileData.isDirectory()) {
+            createDirectory(fileData);
         } else {
             File file = localFolderService.buildFileObject(fileData.getPathDisplay());
             
@@ -109,6 +107,13 @@ public class DownloadService {
                 System.out.println("SKIP " + fileData.getPathDisplay());
             }
         }
+    }
+
+    private void createDirectory(FileData fileData) {
+        localFolderService.createFolder(fileData.getPathDisplay());
+        metadaDao.writeLoadedFlag(fileData.getId(), true);
+        
+        System.out.println("LOCAL_DIR " + fileData.getPathDisplay());
     }
     
     public void downloadAllNotLoaded() {
@@ -151,6 +156,9 @@ public class DownloadService {
                         downloadData(fileData);
                     } catch (DSyncClientException dee) {
                         if (dee.getCause() instanceof DownloadErrorException) {
+                            // TODO That is not correct. And we need to check, maybe
+                            // other thread already deleted that file and its metadata
+                            // while we were waiting for this one to download
                             metadaDao.deleteByPath(fileData.getPathDisplay());
                         } else {
                             throw dee;
