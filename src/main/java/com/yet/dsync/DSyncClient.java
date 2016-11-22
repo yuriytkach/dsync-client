@@ -18,6 +18,14 @@ import java.io.File;
 import java.sql.Connection;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang.StringUtils;
+
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
@@ -30,8 +38,38 @@ import com.yet.dsync.util.Config;
 
 public class DSyncClient {
 
-    public static void main(String[] args) {
-        new DSyncClient().start();
+    public static void main(String[] args) throws ParseException {
+        Options options = createCommandLineOptions();
+        CommandLineParser parser = new BasicParser();
+        CommandLine cmd = parser.parse(options, args);
+        
+        if (cmd.hasOption('h')) {
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp(
+                    "java -cp \"lib/*\" " + DSyncClient.class.getCanonicalName()
+                            + " [options]", options);
+            
+        } else {
+            boolean reset = cmd.hasOption('r');
+            String dbPath = cmd.getOptionValue("db", getDefaultDbPath());
+            
+            new DSyncClient().start(dbPath, reset);
+        }
+    }
+    
+    private static String getDefaultDbPath() {
+        String configDir = Config.getProgramConfigurationDirectory();
+        File db = new File(configDir + File.separator + Config.DB_NAME);
+        return db.getAbsolutePath();
+    }
+    
+    private static Options createCommandLineOptions() {
+        Options options = new Options();
+        options.addOption("db", "database", true, "Full path to database");
+        options.addOption("r", "reset", false,
+                "Remove the database and start configuration procedure");
+        options.addOption("h", "help", false, "Display this help");
+        return options;
     }
 
     private DropboxService dropboxService;
@@ -42,17 +80,11 @@ public class DSyncClient {
     private ConfigDao configDao;
     private MetadataDao metadataDao;
 
-    private void start() {
-        boolean firstRun = isFirstRun();
-        
-        initDao(firstRun);
+    private void start(String dbPath, boolean reset) {
+        initDao(dbPath, reset);
         initServices();
         
-        if (firstRun) {
-            initialStart();            
-        } else {
-            normalStart();
-        }
+        startServices();            
 
         greeting();
         
@@ -67,24 +99,28 @@ public class DSyncClient {
         
         pollFuture.join();
     }
-
-    private boolean isFirstRun() {
-        String configDir = Config.getProgramConfigurationDirectory();
-        File db = new File(configDir + File.separator + Config.DB_NAME);
-        return ! db.exists();
-    }
     
-    private void initDao(boolean firstRun) {
+    private void initDao(String dbPath, boolean reset) {
         DatabaseInit dbInit = new DatabaseInit();
         
-        String configDir = Config.getProgramConfigurationDirectory();
+        File dbPathFile = new File(dbPath).getAbsoluteFile();
         
-        File configDirFile = new File(configDir);
-        if (!configDirFile.exists() && firstRun) {
-            configDirFile.mkdirs();
+        if (reset) {
+            dbPathFile.delete();
         }
         
-        Connection connection = dbInit.createConnection(configDirFile.getAbsolutePath(), Config.DB_NAME);
+        File dbDir = dbPathFile.getParentFile();
+        if (!dbDir.exists() ) {
+            dbDir.mkdirs();
+        }
+        
+        boolean firstRun = reset || ! dbPathFile.exists();
+        
+        System.out.println("Database at " + dbPathFile.getAbsolutePath());
+        
+        String dbName = dbPathFile.getName();
+        
+        Connection connection = dbInit.createConnection(dbDir.getAbsolutePath(), dbName);
         if (firstRun) {
             dbInit.createTables(connection);
         }
@@ -100,22 +136,16 @@ public class DSyncClient {
         downloadService = new DownloadService(metadataDao, localFolderService, dropboxService);
     }
 
-    private void initialStart() {
-        System.out.println("First run of the client.");
-        System.out.println();
-
+    private void startServices() {
         dropboxService.createConfig();
-        dropboxService.authenticate();
-        dropboxService.createClient();
-
-        localFolderService.setupLocalFolder();
-    }
-
-    private void normalStart() {
-        dropboxService.createConfig();
-        dropboxService.createClient();
         
-        localFolderService.validateLocalDir();
+        String authCode = configDao.read(Config.ACCES_TOKEN);
+        if (StringUtils.isBlank(authCode)) {
+            dropboxService.authenticate();
+        }
+        dropboxService.createClient();
+
+        localFolderService.checkOrSetupLocalDir();
     }
 
     private void greeting() {

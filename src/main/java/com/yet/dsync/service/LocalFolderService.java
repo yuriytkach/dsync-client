@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.exception.DSyncClientException;
@@ -50,17 +51,17 @@ public class LocalFolderService {
         }
     }
     
-    public void validateLocalDir() {
+    public void checkOrSetupLocalDir() {
         String localDirPath = configDao.read(Config.LOCAL_DIR);
-        if (localDirPath == null) {
-            // TODO call setup
-            throw new DSyncClientException("No local dir set");
+        if (StringUtils.isBlank(localDirPath)) {
+            setupLocalFolder();
+            localDirPath = configDao.read(Config.LOCAL_DIR);
         }
         
         localDir = new File(localDirPath);
         if ( ! localDir.exists() ) {
-            // TODO call setup
-            throw new DSyncClientException("Local dir does not exists: " + localDir.getAbsolutePath());
+            System.out.println("Local folder does not exists + " + localDir.getAbsolutePath());
+            setupLocalFolder();
         }
     }
     
