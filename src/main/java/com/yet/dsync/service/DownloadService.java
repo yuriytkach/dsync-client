@@ -119,7 +119,7 @@ public class DownloadService {
         
         final String fullFilePath;
         if (dir.exists()) {
-            fullFilePath = dir.getAbsolutePath() + fileName;
+            fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
         } else {
             FileData dirData = metadaDao.readByLowerPath(fileDir.toLowerCase());
             if (dirData != null) {
@@ -132,7 +132,7 @@ public class DownloadService {
                 
                 fullFilePath = localFolderService.buildFileObject(fileDisplayPath).getAbsolutePath();
             } else {
-                fullFilePath = dir.getAbsolutePath() + fileName;
+                fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
             }
         }
         
