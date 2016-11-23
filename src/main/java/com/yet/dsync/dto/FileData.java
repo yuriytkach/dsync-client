@@ -75,6 +75,18 @@ public class FileData {
             return this;
         }
         
+        public Builder init(FileData fileData) {
+            this.changeType = fileData.changeType;
+            this.clientModified = fileData.clientModified;
+            this.id = fileData.id;
+            this.pathDisplay = fileData.pathDisplay;
+            this.pathLower = fileData.pathLower;
+            this.rev = fileData.rev;
+            this.serverModified = fileData.serverModified;
+            this.size = fileData.size;
+            return this;
+        }
+        
         public FileData build() {
             return new FileData(this);
         }

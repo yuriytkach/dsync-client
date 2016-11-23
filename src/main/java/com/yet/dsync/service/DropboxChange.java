@@ -14,11 +14,13 @@
 
 package com.yet.dsync.service;
 
+import java.util.Set;
+
 import com.yet.dsync.dto.FileData;
 
 @FunctionalInterface
 public interface DropboxChange {
     
-    void processChange(FileData data);
+    void processChange(Set<FileData> data);
 
 }

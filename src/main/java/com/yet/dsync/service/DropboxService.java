@@ -18,6 +18,8 @@ import java.io.BufferedReader;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.dropbox.core.DbxAppInfo;
 import com.dropbox.core.DbxAuthFinish;
@@ -34,6 +36,7 @@ import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
 import com.yet.dsync.dao.ConfigDao;
+import com.yet.dsync.dto.FileData;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
@@ -126,11 +129,13 @@ public class DropboxService {
                 if (cursor.isEmpty()) {
                     listFolderResult = client.files().listFolderBuilder("")
                         .withRecursive(Boolean.TRUE).start();
-                
-                    listFolderResult.getEntries().stream()
-                        .map(DropboxUtil::convertMetadata)
-                        .forEach(changeListener::processChange);
                     
+                    Set<FileData> fileDataSet = listFolderResult.getEntries().stream()
+                            .map(DropboxUtil::convertMetadata)
+                            .collect(Collectors.toSet());
+                        
+                    changeListener.processChange(fileDataSet);
+                
                     cursor = listFolderResult.getCursor();
                     configDao.write(Config.CURSOR, cursor);
                 }
@@ -138,9 +143,11 @@ public class DropboxService {
                 while (listFolderResult == null || listFolderResult.getHasMore()) {
                     listFolderResult = client.files().listFolderContinue(cursor);
                     
-                    listFolderResult.getEntries().stream()
-                        .map(DropboxUtil::convertMetadata)
-                        .forEach(changeListener::processChange);
+                    Set<FileData> fileDataSet = listFolderResult.getEntries().stream()
+                            .map(DropboxUtil::convertMetadata)
+                            .collect(Collectors.toSet());
+                        
+                    changeListener.processChange(fileDataSet);
                     
                     cursor = listFolderResult.getCursor();
                     configDao.write(Config.CURSOR, cursor);

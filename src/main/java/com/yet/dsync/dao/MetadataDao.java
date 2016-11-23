@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.Set;
 
 import com.yet.dsync.dto.FileData;
 import com.yet.dsync.exception.DSyncClientException;
@@ -34,6 +35,8 @@ public class MetadataDao {
     private static final String SELECT_BY_ID_STATEMENT = "SELECT * FROM METADATA WHERE ID = ?";
     
     private static final String SELECT_NOT_LOADED_STATEMENT = "SELECT * FROM METADATA WHERE LOADED = 0";
+    
+    private static final String SELECT_BY_PLOWER_STATEMENT = "SELECT * FROM METADATA WHERE PLOWER = ?";
     
     private static final String INSERT_STATEMENT = "INSERT INTO METADATA (ID,PATH,PLOWER,LOADED,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?,?,?)";
     
@@ -47,7 +50,7 @@ public class MetadataDao {
                                                                 + "CLIDATE = ?"
                                                                 + " WHERE ID = ?";
     
-    private static final String DELETE_BY_PATH_STATEMENT = "DELETE FROM METADATA WHERE PATH = ?";
+    private static final String DELETE_BY_PATH_STATEMENT = "DELETE FROM METADATA WHERE PLOWER = ?";
     
     public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE METADATA (" +
                                                             "ID       TEXT PRIMARY KEY  NOT NULL," +
@@ -69,8 +72,9 @@ public class MetadataDao {
     private static final int COL_SRVDATE = COL_SIZE+1;
     private static final int COL_CLIDATE = COL_SRVDATE+1;
     
-    private final PreparedStatement readStatement;
+    private final PreparedStatement readByIdStatement;
     private final PreparedStatement readNotLoadedStatement;
+    private final PreparedStatement readByPLowerStatement;
     private final PreparedStatement insertStatement;
     private final PreparedStatement updateLoadedStatement;
     private final PreparedStatement updateFieldsStatement;
@@ -78,8 +82,9 @@ public class MetadataDao {
 
     public MetadataDao(Connection connection) {
         try {
-            readStatement = connection.prepareStatement(SELECT_BY_ID_STATEMENT);
+            readByIdStatement = connection.prepareStatement(SELECT_BY_ID_STATEMENT);
             readNotLoadedStatement = connection.prepareStatement(SELECT_NOT_LOADED_STATEMENT);
+            readByPLowerStatement = connection.prepareStatement(SELECT_BY_PLOWER_STATEMENT);
             insertStatement = connection.prepareStatement(INSERT_STATEMENT);
             updateLoadedStatement = connection.prepareStatement(UPDATE_LOADED_STATEMENT);
             updateFieldsStatement = connection.prepareStatement(UPDATE_FIELDS_STATEMENT);
@@ -91,9 +96,24 @@ public class MetadataDao {
     
     public FileData read(String id) {
         try {
-            readStatement.setString(COL_ID, id);
+            readByIdStatement.setString(COL_ID, id);
             
-            ResultSet resultSet = readStatement.executeQuery();
+            ResultSet resultSet = readByIdStatement.executeQuery();
+            if (resultSet.next()) {
+                return buildFileData(resultSet);
+            } else {
+                return null;
+            }
+        } catch (SQLException e) {
+            throw new DSyncClientException(e);
+        }
+    }
+    
+    public synchronized FileData readByLowerPath(String lowerPath) {
+        try {
+            readByPLowerStatement.setString(COL_ID, lowerPath);
+            
+            ResultSet resultSet = readByPLowerStatement.executeQuery();
             if (resultSet.next()) {
                 return buildFileData(resultSet);
             } else {
@@ -118,11 +138,11 @@ public class MetadataDao {
         return builder.build();
     }
     
-    public void write(FileData fileData) {
+    public synchronized void write(FileData fileData) {
         try {
-            readStatement.setString(COL_ID, fileData.getId());
+            readByIdStatement.setString(COL_ID, fileData.getId());
             
-            ResultSet resultSet = readStatement.executeQuery();
+            ResultSet resultSet = readByIdStatement.executeQuery();
             if (resultSet.next()) {
                 updateFieldsStatement.setString(1, fileData.getPathDisplay());
                 updateFieldsStatement.setString(2, fileData.getPathLower());
@@ -134,17 +154,41 @@ public class MetadataDao {
                 updateFieldsStatement.setString(6, fileData.getId());
                 
             } else {
-                insertStatement.setString(COL_ID, fileData.getId());
-                insertStatement.setString(COL_PATH, fileData.getPathDisplay());
-                insertStatement.setString(COL_PATH_LOWER, fileData.getPathLower());
-                insertStatement.setBoolean(COL_LOADED, false);
-                setStatementParams(insertStatement, COL_REV, fileData.getRev(), Types.VARCHAR);                
-                setStatementParams(insertStatement, COL_SIZE, fileData.getSize(), Types.BIGINT);
-                setStatementParams(insertStatement, COL_SRVDATE, dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
-                setStatementParams(insertStatement, COL_CLIDATE, dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
+                fillInsertStatement(fileData);
                 
                 insertStatement.executeUpdate();
             }
+        } catch (SQLException e) {
+            throw new DSyncClientException(e);
+        }
+    }
+
+    private void fillInsertStatement(FileData fileData) throws SQLException {
+        insertStatement.setString(COL_ID, fileData.getId());
+        insertStatement.setString(COL_PATH, fileData.getPathDisplay());
+        insertStatement.setString(COL_PATH_LOWER, fileData.getPathLower());
+        insertStatement.setBoolean(COL_LOADED, false);
+        setStatementParams(insertStatement, COL_REV, fileData.getRev(), Types.VARCHAR);                
+        setStatementParams(insertStatement, COL_SIZE, fileData.getSize(), Types.BIGINT);
+        setStatementParams(insertStatement, COL_SRVDATE, dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
+        setStatementParams(insertStatement, COL_CLIDATE, dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
+    }
+    
+    public void write(Set<FileData> fileDataSet) {
+        try {
+            fileDataSet.forEach(fileData -> {
+                
+                try {
+                    fillInsertStatement(fileData);
+                    insertStatement.addBatch();
+                } catch (SQLException e) {
+                    throw new DSyncClientException(e);
+                }
+                
+            });
+            
+            insertStatement.executeBatch();
+            
         } catch (SQLException e) {
             throw new DSyncClientException(e);
         }
@@ -167,7 +211,7 @@ public class MetadataDao {
         }
     }
     
-    public void writeLoadedFlag(String id, boolean loaded) {
+    public synchronized void writeLoadedFlag(String id, boolean loaded) {
         try {
             updateLoadedStatement.setBoolean(1, loaded);
             updateLoadedStatement.setString(2, id);
@@ -178,9 +222,9 @@ public class MetadataDao {
         }
     }
     
-    public void deleteByPath(String path) {
+    public void deleteByLowerPath(FileData fileData) {
         try {
-            deleteByPathStatement.setString(1, path);
+            deleteByPathStatement.setString(1, fileData.getPathLower());
             
             deleteByPathStatement.executeUpdate();
         } catch (SQLException e) {

@@ -16,7 +16,10 @@ package com.yet.dsync;
 
 import java.io.File;
 import java.sql.Connection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -30,6 +33,7 @@ import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.ChangeType;
+import com.yet.dsync.dto.FileData;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.service.DownloadService;
 import com.yet.dsync.service.DropboxService;
@@ -88,8 +92,7 @@ public class DSyncClient {
 
         greeting();
         
-        String initialSyncDone = configDao.read(Config.INITIAL_SYNC);
-        if ( ! ConfigDao.YES.equals(initialSyncDone) ) {
+        if ( ! isInitialSyncDone() ) {
             initialSync();
         }
         
@@ -98,6 +101,12 @@ public class DSyncClient {
         CompletableFuture<Void> pollFuture = runPolling();
         
         pollFuture.join();
+    }
+
+    private boolean isInitialSyncDone() {
+        String initialSyncDone = configDao.read(Config.INITIAL_SYNC);
+        String cursor = configDao.read(Config.CURSOR);
+        return StringUtils.isNotBlank(cursor) && ConfigDao.YES.equals(initialSyncDone);
     }
     
     private void initDao(String dbPath, boolean reset) {
@@ -168,10 +177,11 @@ public class DSyncClient {
     }
     
     private void initialSync() {
-        Runnable syncThread = dropboxService.createInitialSyncThread(fileData -> {
-            // TODO: Needs optimization for batch processing
-            System.out.println(fileData);
-            metadataDao.write(fileData);
+        Runnable syncThread = dropboxService.createInitialSyncThread(fileDataSet -> {
+            fileDataSet.forEach(System.out::println);
+            System.out.println(">> writing db " + fileDataSet.size() + " records...");
+            metadataDao.write(fileDataSet);
+            System.out.println("<< done db");
         });
         syncThread.run();
         
@@ -179,14 +189,28 @@ public class DSyncClient {
     }
 
     private CompletableFuture<Void> runPolling() {
-        Runnable pollThread = dropboxService.createPollingThread(fd -> {
-            System.out.println(fd);
-            if (ChangeType.DELETE.equals(fd.getChangeType()) ) {
-                localFolderService.deleteFileOrFolder(fd.getPathDisplay());
-                metadataDao.deleteByPath(fd.getPathDisplay());
-                System.out.println("DELETED " + fd.getPathDisplay());
-            } else {
-                downloadService.scheduleDownload(fd);
+        Runnable pollThread = dropboxService.createPollingThread(fileDataSet -> {
+            fileDataSet.forEach(System.out::println);
+            
+            Map<ChangeType, List<FileData>> map = fileDataSet.stream()
+                    .collect(Collectors.groupingBy(FileData::getChangeType));
+            
+            List<FileData> deletes = map.get(ChangeType.DELETE);
+            List<FileData> folders = map.get(ChangeType.FOLDER);
+            List<FileData> files = map.get(ChangeType.FILE);
+            
+            if (deletes != null) {
+                deletes.forEach(fd -> {
+                    localFolderService.deleteFileOrFolder(fd.getPathDisplay());
+                    metadataDao.deleteByLowerPath(fd);
+                    System.out.println("DELETED " + fd.getPathDisplay());
+                });
+            }
+            if (folders != null) {
+                folders.forEach(downloadService::scheduleDownload);
+            }
+            if (files != null) {
+                files.forEach(downloadService::scheduleDownload);
             }
         });
         return CompletableFuture.runAsync(pollThread);

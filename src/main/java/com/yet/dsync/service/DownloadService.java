@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 
+import org.apache.commons.io.FilenameUtils;
+
 import com.dropbox.core.v2.files.DownloadErrorException;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.FileData;
@@ -93,7 +95,7 @@ public class DownloadService {
         if (fileData.isDirectory()) {
             createDirectory(fileData);
         } else {
-            File file = localFolderService.buildFileObject(fileData.getPathDisplay());
+            File file = resolveFile(fileData);
             
             if ( file.getParentFile().exists() ) {
                 try (FileOutputStream fos = new FileOutputStream(file)) {
@@ -107,6 +109,34 @@ public class DownloadService {
                 System.out.println("SKIP " + fileData.getPathDisplay());
             }
         }
+    }
+
+    private File resolveFile(FileData fileData) {
+        final String fileDir = FilenameUtils.getFullPathNoEndSeparator(fileData.getPathDisplay());
+        final String fileName = FilenameUtils.getName(fileData.getPathDisplay());
+        
+        File dir = localFolderService.buildFileObject(fileDir);
+        
+        final String fullFilePath;
+        if (dir.exists()) {
+            fullFilePath = dir.getAbsolutePath() + fileName;
+        } else {
+            FileData dirData = metadaDao.readByLowerPath(fileDir.toLowerCase());
+            if (dirData != null) {
+                String fileDisplayPath = dirData.getPathDisplay() + File.separator + fileName;
+                
+                FileData.Builder newFileDataBuilder = new FileData.Builder();
+                newFileDataBuilder.init(fileData).pathDisplay(fileDisplayPath);
+                FileData newFileData = newFileDataBuilder.build();
+                metadaDao.write(newFileData);
+                
+                fullFilePath = localFolderService.buildFileObject(fileDisplayPath).getAbsolutePath();
+            } else {
+                fullFilePath = dir.getAbsolutePath() + fileName;
+            }
+        }
+        
+        return new File(fullFilePath);
     }
 
     private void createDirectory(FileData fileData) {
@@ -159,7 +189,7 @@ public class DownloadService {
                             // TODO That is not correct. And we need to check, maybe
                             // other thread already deleted that file and its metadata
                             // while we were waiting for this one to download
-                            metadaDao.deleteByPath(fileData.getPathDisplay());
+                            metadaDao.deleteByLowerPath(fileData);
                         } else {
                             throw dee;
                         }

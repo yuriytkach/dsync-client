@@ -14,11 +14,15 @@
 
 package com.yet.dsync.service;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.ListFolderLongpollResult;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.yet.dsync.dao.ConfigDao;
+import com.yet.dsync.dto.FileData;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
 
@@ -48,9 +52,11 @@ public class DropboxPolling implements Runnable {
                 cursor = listFolderResult.getCursor();
                 saveCursor(cursor);
                 
-                listFolderResult.getEntries().stream()
+                Set<FileData> fileDataSet = listFolderResult.getEntries().stream()
                     .map(DropboxUtil::convertMetadata)
-                    .forEach(changeListener::processChange);
+                    .collect(Collectors.toSet());
+                
+                changeListener.processChange(fileDataSet);
 
                 if (listFolderResult.getHasMore()) {
                     listFolderResult = client.files().listFolderContinue(cursor);
