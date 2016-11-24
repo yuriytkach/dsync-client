@@ -100,7 +100,9 @@ public class DSyncClient {
         
         CompletableFuture<Void> pollFuture = runPolling();
         
-        pollFuture.join();
+        CompletableFuture<Void> watchFuture = runWatching();
+        
+        CompletableFuture.allOf(pollFuture, watchFuture).join();
     }
 
     private boolean isInitialSyncDone() {
@@ -160,20 +162,12 @@ public class DSyncClient {
     private void greeting() {
         UserData userData = dropboxService.retrieveUserData();
 
+        System.out.println();
         System.out.println("Hello, " + userData.getUserName());
         System.out.println("Used storage " + userData.getUsedBytesDisplay() + " of " + userData.getAvailBytesDisplay());
         
         System.out.println();
         System.out.println("Client is running. Use Ctrl+c to kill it.");
-
-        printWarning();
-    }
-    
-    private void printWarning() {
-        System.out.println();
-        System.out.println(
-                "(Note. The client does not do much. For now it only logs events that happen in Dropbox folder on server)");
-        System.out.println();
     }
     
     private void initialSync() {
@@ -214,6 +208,11 @@ public class DSyncClient {
             }
         });
         return CompletableFuture.runAsync(pollThread);
+    }
+    
+    private CompletableFuture<Void> runWatching() {
+        Runnable watchThread = localFolderService.createFolderWatchingThread();
+        return CompletableFuture.runAsync(watchThread);
     }
 
 }
