@@ -23,21 +23,23 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
+import com.yet.dsync.util.WatcherRegisterConsumer;
 
 public class LocalFolderWatching implements Runnable {
 
     private final ConfigDao configDao;
-    private WatchService watchService;
+    private final WatchService watchService;
 
     public LocalFolderWatching(ConfigDao configDao) {
         this.configDao = configDao;
         try {
-            watchService = FileSystems.getDefault().newWatchService();
+            this.watchService = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
             throw new DSyncClientException(e);
         }
@@ -50,57 +52,59 @@ public class LocalFolderWatching implements Runnable {
         String localDirPath = configDao.read(Config.LOCAL_DIR);
 
         Path localDir = Paths.get(localDirPath);
-
+        
+        final Map<WatchKey, Path> keys = new HashMap<>();
+        
+        final WatcherRegisterConsumer watcherConsumer = new WatcherRegisterConsumer(watchService, key -> {
+            Path path = (Path) key.watchable();
+            keys.put(key, path);
+        });
+        
         try {
-            WatchKey key = localDir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
+            
+            watcherConsumer.accept(localDir);
 
             while (!Thread.interrupted()) {
+                final WatchKey key;
                 try {
                     key = watchService.take();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                    continue;
                 }
-
-                List<WatchEvent<?>> keys = key.pollEvents();
-                for (WatchEvent<?> watchEvent : keys) {
-                    // get the kind of event
-                    Kind<?> watchEventKind = watchEvent.kind();
-                    // sometimes events are created faster than they are
-                    // registered
-                    // or the implementation
-                    // may specify a maximum number of events and further events
-                    // are
-                    // discarded. In these cases
-                    // an event of kind overflow is returned. We ignore this
-                    // case
-                    // for nowl
-                    if (watchEventKind == StandardWatchEventKinds.OVERFLOW) {
-                        continue;
-                    }
-                    if (watchEventKind == StandardWatchEventKinds.ENTRY_CREATE) {
-                        // a new file has been created
-                        // print the name of the file. To test this, go to the
-                        // temp
-                        // directory
-                        // and create a plain text file. name the file a.txt. If
-                        // you
-                        // are on windows, watch what happens!
-                        System.out.println("File Created:" + watchEvent.context());
-                    } else if (watchEventKind == StandardWatchEventKinds.ENTRY_MODIFY) {
-                        // The file has been modified. Go to the file created
-                        // above
-                        // and modify it
-                        System.out.println("File Modified:" + watchEvent.context());
-                    } else if (watchEventKind == StandardWatchEventKinds.ENTRY_DELETE) {
-                        // the file has been deleted. delete the file. and exit
-                        // the
-                        // loop.
-                        System.out.println("File deleted:" + watchEvent.context());
-                    }
-                    // we need to reset the key so the further key events may be
-                    // polled
-                    key.reset();
+                
+                final Path dir = keys.get(key);
+                if (dir == null) {
+                    System.err.println("WatchKey " + key + " not recognized!");
+                    continue;
+                }
+                
+                key.pollEvents().stream()
+                    .filter(e -> (e.kind() != StandardWatchEventKinds.OVERFLOW))
+                    .forEach(e -> {
+                        WatchEvent<Path> event = (WatchEvent<Path>)e;
+                        Kind<Path> watchEventKind = event.kind();
+                        
+                        if (watchEventKind == StandardWatchEventKinds.ENTRY_CREATE) {
+                            final Path createdPath = dir.resolve(event.context());
+                            if (createdPath.toFile().isDirectory()) {
+                                System.out.println("Dir Created:" + event.context());
+                                watcherConsumer.accept(createdPath);
+                            } else {
+                                System.out.println("File Created:" + event.context());
+                            }
+                            
+                        } else if (watchEventKind == StandardWatchEventKinds.ENTRY_MODIFY) {
+                            System.out.println("File Modified:" + event.context());
+                            
+                        } else if (watchEventKind == StandardWatchEventKinds.ENTRY_DELETE) {
+                            System.out.println("File deleted:" + event.context());
+                        }
+                    });
+                
+                boolean valid = key.reset(); // IMPORTANT: The key must be reset after processed
+                if (!valid) {
+                    break;
                 }
             }
 
