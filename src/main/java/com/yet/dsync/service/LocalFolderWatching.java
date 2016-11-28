@@ -25,8 +25,13 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import com.yet.dsync.dao.ConfigDao;
+import com.yet.dsync.dto.LocalFolderChangeType;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.WatcherRegisterConsumer;
@@ -34,34 +39,61 @@ import com.yet.dsync.util.WatcherRegisterConsumer;
 public class LocalFolderWatching implements Runnable {
 
     private final ConfigDao configDao;
+    private final LocalFolderChange changeListener;
+
     private final WatchService watchService;
 
-    public LocalFolderWatching(ConfigDao configDao) {
+    private final BlockingQueue<Path> createdPathes = new LinkedBlockingDeque<>(10);
+    private Map<WatchKey, Path> keys;
+    private WatcherRegisterConsumer watcherConsumer;
+
+    public LocalFolderWatching(ConfigDao configDao, LocalFolderChange changeListener) {
         this.configDao = configDao;
+        this.changeListener = changeListener;
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
             throw new DSyncClientException(e);
+        }
+
+        keys = new HashMap<>();
+
+        watcherConsumer = new WatcherRegisterConsumer(watchService, key -> {
+            Path path = (Path) key.watchable();
+            keys.put(key, path);
+        });
+
+        final ExecutorService executorService = Executors.newFixedThreadPool(10);
+        for (int i = 0; i < 10; i++) {
+            executorService.execute(() -> {
+                try {
+                    Path path = createdPathes.take();
+
+                    Thread.sleep(1000);
+
+                    if (path.toFile().isDirectory()) {
+                        watcherConsumer.accept(path);
+                    }
+
+                    changeListener.processChange(LocalFolderChangeType.CREATE, path);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            });
         }
     }
 
     @Override
     public void run() {
         System.out.println("Started local folder watching...");
-        
+
         String localDirPath = configDao.read(Config.LOCAL_DIR);
 
         Path localDir = Paths.get(localDirPath);
-        
-        final Map<WatchKey, Path> keys = new HashMap<>();
-        
-        final WatcherRegisterConsumer watcherConsumer = new WatcherRegisterConsumer(watchService, key -> {
-            Path path = (Path) key.watchable();
-            keys.put(key, path);
-        });
-        
+
         try {
-            
+
             watcherConsumer.accept(localDir);
 
             while (!Thread.interrupted()) {
@@ -72,37 +104,38 @@ public class LocalFolderWatching implements Runnable {
                     e.printStackTrace();
                     continue;
                 }
-                
+
                 final Path dir = keys.get(key);
                 if (dir == null) {
                     System.err.println("WatchKey " + key + " not recognized!");
                     continue;
                 }
-                
-                key.pollEvents().stream()
-                    .filter(e -> (e.kind() != StandardWatchEventKinds.OVERFLOW))
-                    .forEach(e -> {
-                        WatchEvent<Path> event = (WatchEvent<Path>)e;
-                        Kind<Path> watchEventKind = event.kind();
-                        
-                        if (watchEventKind == StandardWatchEventKinds.ENTRY_CREATE) {
-                            final Path createdPath = dir.resolve(event.context());
-                            if (createdPath.toFile().isDirectory()) {
-                                System.out.println("Dir Created:" + event.context());
-                                watcherConsumer.accept(createdPath);
-                            } else {
-                                System.out.println("File Created:" + event.context());
-                            }
-                            
-                        } else if (watchEventKind == StandardWatchEventKinds.ENTRY_MODIFY) {
-                            System.out.println("File Modified:" + event.context());
-                            
-                        } else if (watchEventKind == StandardWatchEventKinds.ENTRY_DELETE) {
-                            System.out.println("File deleted:" + event.context());
+
+                key.pollEvents().stream().filter(e -> (e.kind() != StandardWatchEventKinds.OVERFLOW)).forEach(e -> {
+                    @SuppressWarnings("unchecked")
+                    WatchEvent<Path> event = (WatchEvent<Path>) e;
+
+                    Kind<Path> watchEventKind = event.kind();
+
+                    Path path = dir.resolve(event.context());
+
+                    LocalFolderChangeType changeType = LocalFolderChangeType.fromWatchEventKind(watchEventKind);
+
+                    switch (changeType) {
+                    case CREATE:
+                        try {
+                            createdPathes.put(path);
+                        } catch (Exception e1) {
+                            e1.printStackTrace();
                         }
-                    });
-                
-                boolean valid = key.reset(); // IMPORTANT: The key must be reset after processed
+                        break;
+                    default:
+                        changeListener.processChange(changeType, path);
+                    }
+                });
+
+                boolean valid = key.reset(); // IMPORTANT: The key must be reset
+                                             // after processed
                 if (!valid) {
                     break;
                 }
