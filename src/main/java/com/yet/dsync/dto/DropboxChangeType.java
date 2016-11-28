@@ -20,7 +20,7 @@ import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.Metadata;
 import com.yet.dsync.exception.DSyncClientException;
 
-public enum ChangeType {
+public enum DropboxChangeType {
     DELETE, 
     
     FOLDER, 
@@ -28,15 +28,15 @@ public enum ChangeType {
     FILE;
 
    
-    public static ChangeType fromMetadata(Metadata metadata) {
+    public static DropboxChangeType fromMetadata(Metadata metadata) {
         if (metadata instanceof DeletedMetadata) {
-            return ChangeType.DELETE;
+            return DropboxChangeType.DELETE;
         
         } else if (metadata instanceof FolderMetadata) {
-            return ChangeType.FOLDER;
+            return DropboxChangeType.FOLDER;
             
         } else if (metadata instanceof FileMetadata) {
-            return ChangeType.FILE;
+            return DropboxChangeType.FILE;
             
         } else {
             throw new DSyncClientException("Unknow Metadata class " + metadata.getClass());

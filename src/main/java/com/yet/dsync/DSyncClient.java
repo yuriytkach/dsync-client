@@ -32,7 +32,7 @@ import org.apache.commons.lang.StringUtils;
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
-import com.yet.dsync.dto.ChangeType;
+import com.yet.dsync.dto.DropboxChangeType;
 import com.yet.dsync.dto.FileData;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.service.DownloadService;
@@ -186,12 +186,12 @@ public class DSyncClient {
         Runnable pollThread = dropboxService.createPollingThread(fileDataSet -> {
             fileDataSet.forEach(System.out::println);
             
-            Map<ChangeType, List<FileData>> map = fileDataSet.stream()
+            Map<DropboxChangeType, List<FileData>> map = fileDataSet.stream()
                     .collect(Collectors.groupingBy(FileData::getChangeType));
             
-            List<FileData> deletes = map.get(ChangeType.DELETE);
-            List<FileData> folders = map.get(ChangeType.FOLDER);
-            List<FileData> files = map.get(ChangeType.FILE);
+            List<FileData> deletes = map.get(DropboxChangeType.DELETE);
+            List<FileData> folders = map.get(DropboxChangeType.FOLDER);
+            List<FileData> files = map.get(DropboxChangeType.FILE);
             
             if (deletes != null) {
                 deletes.forEach(fd -> {

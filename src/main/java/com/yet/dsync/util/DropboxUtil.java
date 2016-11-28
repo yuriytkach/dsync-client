@@ -21,7 +21,7 @@ import java.time.ZoneId;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.Metadata;
-import com.yet.dsync.dto.ChangeType;
+import com.yet.dsync.dto.DropboxChangeType;
 import com.yet.dsync.dto.FileData;
 import com.yet.dsync.dto.FileData.Builder;
 
@@ -30,7 +30,7 @@ public class DropboxUtil {
     public static FileData convertMetadata(Metadata metadata) {
         FileData.Builder builder = new Builder();
         builder
-            .changeType(ChangeType.fromMetadata(metadata))
+            .changeType(DropboxChangeType.fromMetadata(metadata))
             .pathDisplay(metadata.getPathDisplay())
             .pathLower(metadata.getPathLower());
         

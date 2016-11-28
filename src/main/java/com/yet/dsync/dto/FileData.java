@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 public class FileData {
     
     public static class Builder {
-        private ChangeType changeType;
+        private DropboxChangeType changeType;
         
         private String pathDisplay;
         
@@ -35,7 +35,7 @@ public class FileData {
         
         private LocalDateTime clientModified;
         
-        public Builder changeType(ChangeType changeType) {
+        public Builder changeType(DropboxChangeType changeType) {
             this.changeType = changeType;
             return this;
         }
@@ -92,7 +92,7 @@ public class FileData {
         }
     }
 
-    private final ChangeType changeType;
+    private final DropboxChangeType changeType;
     
     private final String pathDisplay;
     
@@ -127,7 +127,7 @@ public class FileData {
         return id != null && rev == null;
     }
 
-    public ChangeType getChangeType() {
+    public DropboxChangeType getChangeType() {
         return changeType;
     }
 
@@ -163,9 +163,9 @@ public class FileData {
     public String toString() {
         String str = this.getClass().getSimpleName() + " [" + changeType + " " + pathDisplay;
         
-        if (ChangeType.FOLDER == changeType) {
+        if (DropboxChangeType.FOLDER == changeType) {
             str += ", id: " + id;
-        } else if (ChangeType.FILE == changeType) {
+        } else if (DropboxChangeType.FILE == changeType) {
             str += ", id: " + id + ", rev: " + rev + ", size: " + size + ", client: " + clientModified + ", server: " + serverModified;
         }
         
