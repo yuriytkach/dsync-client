@@ -48,8 +48,6 @@ public class DatabaseInit {
         try {
             createConfigTable(connection);
             createMetadataTable(connection);
-            
-            System.out.println("Tables created successfully");
         } catch (SQLException e) {
             throw new DSyncClientException(e);
         }

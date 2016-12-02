@@ -28,6 +28,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
@@ -41,7 +43,9 @@ import com.yet.dsync.service.LocalFolderService;
 import com.yet.dsync.util.Config;
 
 public class DSyncClient {
-
+    
+    private static final Logger LOG = LogManager.getLogger(DSyncClient.class);
+    
     public static void main(String[] args) throws ParseException {
         Options options = createCommandLineOptions();
         CommandLineParser parser = new BasicParser();
@@ -117,6 +121,7 @@ public class DSyncClient {
         File dbPathFile = new File(dbPath).getAbsoluteFile();
         
         if (reset) {
+            LOG.info("Resetting configuration");
             dbPathFile.delete();
         }
         
@@ -127,13 +132,15 @@ public class DSyncClient {
         
         boolean firstRun = reset || ! dbPathFile.exists();
         
-        System.out.println("Database at " + dbPathFile.getAbsolutePath());
+        LOG.debug("Using database at {}", () -> dbPathFile.getAbsolutePath());
         
         String dbName = dbPathFile.getName();
         
         Connection connection = dbInit.createConnection(dbDir.getAbsolutePath(), dbName);
         if (firstRun) {
+            LOG.debug("Creating database tables");
             dbInit.createTables(connection);
+            LOG.debug("Tables created successfully");
         }
         
         configDao = new ConfigDao(connection);
