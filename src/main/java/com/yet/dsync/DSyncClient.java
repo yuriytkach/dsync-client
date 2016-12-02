@@ -150,7 +150,7 @@ public class DSyncClient {
     private void startServices() {
         dropboxService.createConfig();
         
-        String authCode = configDao.read(Config.ACCES_TOKEN);
+        String authCode = configDao.read(Config.ACCESS_TOKEN);
         if (StringUtils.isBlank(authCode)) {
             dropboxService.authenticate();
         }

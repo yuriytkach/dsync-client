@@ -75,7 +75,7 @@ public class DropboxService {
             String code = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
             
             DbxAuthFinish finish = webAuth.finishFromCode(code);
-            configDao.write(Config.ACCES_TOKEN, finish.getAccessToken());
+            configDao.write(Config.ACCESS_TOKEN, finish.getAccessToken());
             
         } catch (IOException e) {
             e.printStackTrace();
@@ -87,7 +87,7 @@ public class DropboxService {
     }
 
     public void createClient() {
-        String accessToken = configDao.read(Config.ACCES_TOKEN);
+        String accessToken = configDao.read(Config.ACCESS_TOKEN);
         client = new DbxClientV2(config, accessToken);
     }
 

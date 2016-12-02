@@ -18,7 +18,7 @@ import java.io.File;
 
 public enum Config {
 
-    ACCES_TOKEN,
+    ACCESS_TOKEN,
 
     CURSOR,
 
