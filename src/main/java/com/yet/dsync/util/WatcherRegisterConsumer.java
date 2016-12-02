@@ -34,11 +34,13 @@ public class WatcherRegisterConsumer implements Consumer<Path> {
             throw new DSyncClientException("folder " + path + " does not exist or is not a directory");
         }
         try {
-            if (SystemUtils.IS_OS_UNIX) {
-                registerWatchersRecursively(path);
-            } else if (SystemUtils.IS_OS_WINDOWS) {
-                registerWatcherForFileTree(path);
-            }
+            //FIXME: fix recursive subscription in case of windows os
+            registerWatchersRecursively(path);
+//            if (SystemUtils.IS_OS_UNIX) {
+//                registerWatchersRecursively(path);
+//            } else if (SystemUtils.IS_OS_WINDOWS) {
+//                registerWatcherForFileTree(path);
+//            }
         } catch (IOException e) {
             throw new DSyncClientException("Error registering path " + path);
         }
