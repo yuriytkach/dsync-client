@@ -12,7 +12,7 @@ Configutation:
       name: Console_Appender
       target: SYSTEM_OUT
       PatternLayout:
-        pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level: %msg (%c{1}, %L)%n"
+        pattern: "%d{HH:mm:ss.SSS} [%t] %-5level: %msg (%c{1}, %L)%n"
         
     RollingFile:
       name: RollingFile_Appender
@@ -35,7 +35,6 @@ Configutation:
 
       Logger:
         - name: com.yet.dsync
-          level: debug
+          level: trace
           AppenderRef:
             - ref: RollingFile_Appender
-              level: debug
