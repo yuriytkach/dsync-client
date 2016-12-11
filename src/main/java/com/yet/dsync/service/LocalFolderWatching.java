@@ -91,6 +91,7 @@ public class LocalFolderWatching implements Runnable {
 
     @Override
     public void run() {
+        Thread.currentThread().setName("local-poll");
         LOG.info("Started local folder watching");
 
         String localDirPath = configDao.read(Config.LOCAL_DIR);

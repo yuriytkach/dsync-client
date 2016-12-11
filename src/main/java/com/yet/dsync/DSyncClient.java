@@ -19,6 +19,8 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.BasicParser;
@@ -102,9 +104,11 @@ public class DSyncClient {
         
         downloadService.downloadAllNotLoaded();
         
-        CompletableFuture<Void> pollFuture = runPolling();
+        ExecutorService pool = Executors.newFixedThreadPool(2);
         
-        CompletableFuture<Void> watchFuture = runWatching();
+        CompletableFuture<Void> pollFuture = runPolling(pool);
+        
+        CompletableFuture<Void> watchFuture = runWatching(pool);
         
         CompletableFuture.allOf(pollFuture, watchFuture).join();
     }
@@ -187,7 +191,7 @@ public class DSyncClient {
         configDao.write(Config.INITIAL_SYNC, ConfigDao.YES);
     }
 
-    private CompletableFuture<Void> runPolling() {
+    private CompletableFuture<Void> runPolling(ExecutorService pool) {
         Runnable pollThread = dropboxService.createPollingThread(fileDataSet -> {
             fileDataSet.forEach(fd -> LOG.info("DROPBOX {}", () -> fd.toString()));
             
@@ -212,14 +216,14 @@ public class DSyncClient {
                 files.forEach(downloadService::scheduleDownload);
             }
         });
-        return CompletableFuture.runAsync(pollThread);
+        return CompletableFuture.runAsync(pollThread, pool);
     }
     
-    private CompletableFuture<Void> runWatching() {
+    private CompletableFuture<Void> runWatching(ExecutorService pool) {
         Runnable watchThread = localFolderService.createFolderWatchingThread((changeType, path) -> {
             LOG.info("LOCAL {}", () -> changeType + ": " + path.toAbsolutePath());
         });
-        return CompletableFuture.runAsync(watchThread);
+        return CompletableFuture.runAsync(watchThread, pool);
     }
 
 }

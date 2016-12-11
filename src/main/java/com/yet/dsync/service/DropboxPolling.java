@@ -45,6 +45,7 @@ public class DropboxPolling implements Runnable {
 
     @Override
     public void run() {
+        Thread.currentThread().setName("drpbx-poll");
         LOG.info("Started Dropbox polling");
         
         String cursor = readCursor();
