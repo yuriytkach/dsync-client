@@ -30,6 +30,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.LocalFolderChangeType;
 import com.yet.dsync.exception.DSyncClientException;
@@ -37,6 +40,8 @@ import com.yet.dsync.util.Config;
 import com.yet.dsync.util.WatcherRegisterConsumer;
 
 public class LocalFolderWatching implements Runnable {
+    
+    private static final Logger LOG = LogManager.getLogger(LocalFolderWatching.class);
 
     private final ConfigDao configDao;
     private final LocalFolderChange changeListener;
@@ -77,7 +82,7 @@ public class LocalFolderWatching implements Runnable {
 
                     changeListener.processChange(LocalFolderChangeType.CREATE, path);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    LOG.error("Interrupted watcher", e);
                 }
 
             });
@@ -86,7 +91,7 @@ public class LocalFolderWatching implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Started local folder watching...");
+        LOG.info("Started local folder watching");
 
         String localDirPath = configDao.read(Config.LOCAL_DIR);
 
@@ -101,13 +106,13 @@ public class LocalFolderWatching implements Runnable {
                 try {
                     key = watchService.take();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    LOG.error("Interrupted", e);
                     continue;
                 }
 
                 final Path dir = keys.get(key);
                 if (dir == null) {
-                    System.err.println("WatchKey " + key + " not recognized!");
+                    LOG.error("WatchKey {} not recognized!", () -> key);
                     continue;
                 }
 
@@ -126,7 +131,7 @@ public class LocalFolderWatching implements Runnable {
                         try {
                             createdPathes.put(path);
                         } catch (Exception e1) {
-                            e1.printStackTrace();
+                            LOG.error("Interrupted", e1);
                         }
                         break;
                     default:

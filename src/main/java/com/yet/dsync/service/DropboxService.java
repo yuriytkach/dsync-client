@@ -21,6 +21,9 @@ import java.io.InputStreamReader;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.dropbox.core.DbxAppInfo;
 import com.dropbox.core.DbxAuthFinish;
 import com.dropbox.core.DbxDownloader;
@@ -43,6 +46,8 @@ import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
 
 public class DropboxService {
+    
+    private static final Logger LOG = LogManager.getLogger(DropboxService.class);
 
     private DbxClientV2 client;
     private DbxRequestConfig config;
@@ -67,6 +72,7 @@ public class DropboxService {
         DbxWebAuth webAuth = new DbxWebAuth(config, appInfo);
         String authWebUrl = webAuth.authorize(request);
 
+        System.out.println("---------------------------");
         System.out.println("1. Go to: " + authWebUrl);
         System.out.println("2. Click \"Allow\" (you might have to log in first)");
         System.out.println("3. Copy the authorization code.");
@@ -78,10 +84,10 @@ public class DropboxService {
             configDao.write(Config.ACCESS_TOKEN, finish.getAccessToken());
             
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("IO error", e);
             System.exit(-1);
         } catch (DbxException e) {
-            System.err.println("Failed to authorize: " + e.getLocalizedMessage());
+            LOG.error("Failed to authorize", e);
             System.exit(-2);
         }
     }
@@ -154,7 +160,7 @@ public class DropboxService {
                 }
                 
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Failed in initial sync", e);
             }
         };
     }

@@ -17,6 +17,9 @@ package com.yet.dsync.service;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.ListFolderLongpollResult;
@@ -27,6 +30,8 @@ import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
 
 public class DropboxPolling implements Runnable {
+    
+    private static final Logger LOG = LogManager.getLogger(DropboxPolling.class);
 
     private DbxClientV2 client;
     private ConfigDao configDao;
@@ -40,7 +45,7 @@ public class DropboxPolling implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("Started Dropbox polling...");
+        LOG.info("Started Dropbox polling");
         
         String cursor = readCursor();
 
@@ -83,7 +88,7 @@ public class DropboxPolling implements Runnable {
                 }
             }
         } catch (DbxException e1) {
-            e1.printStackTrace();
+            LOG.error("Dropbox polling error", e1);
         }
     }
 

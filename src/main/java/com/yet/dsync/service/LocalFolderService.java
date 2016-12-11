@@ -21,12 +21,16 @@ import java.io.InputStreamReader;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 
 public class LocalFolderService {
+    
+    private static final Logger LOG = LogManager.getLogger(LocalFolderService.class);
 
     private final ConfigDao configDao;
     
@@ -74,13 +78,13 @@ public class LocalFolderService {
         
         localDir = new File(localDirPath);
         if ( ! localDir.exists() ) {
-            System.out.println("Local folder does not exists + " + localDir.getAbsolutePath());
+            LOG.info("Local folder does not exist: {}", ()->localDir.getAbsolutePath());
             setupLocalFolder();
             localDirPath = configDao.read(Config.LOCAL_DIR);
             localDir = new File(localDirPath);
         }
         
-        System.out.println("Local folder: " + localDir.getAbsolutePath());
+        LOG.debug("Local folder: {}", ()->localDir.getAbsolutePath());
     }
     
     public void createFolder(String path) {

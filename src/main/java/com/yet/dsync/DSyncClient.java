@@ -169,20 +169,18 @@ public class DSyncClient {
     private void greeting() {
         UserData userData = dropboxService.retrieveUserData();
 
-        System.out.println();
-        System.out.println("Hello, " + userData.getUserName());
-        System.out.println("Used storage " + userData.getUsedBytesDisplay() + " of " + userData.getAvailBytesDisplay());
-        
-        System.out.println();
-        System.out.println("Client is running. Use Ctrl+c to kill it.");
+        LOG.info("Hello, {}", () -> userData.getUserName());
+        LOG.info("Used storage {} of {}", userData.getUsedBytesDisplay(), userData.getAvailBytesDisplay());
+
+        LOG.info("Client is running. Use Ctrl+c to kill it.");
     }
     
     private void initialSync() {
         Runnable syncThread = dropboxService.createInitialSyncThread(fileDataSet -> {
-            fileDataSet.forEach(System.out::println);
-            System.out.println(">> writing db " + fileDataSet.size() + " records...");
+            fileDataSet.forEach(fd -> LOG.info("DROPBOX {}", () -> fd.toString()));
+            LOG.debug("Writing DB: {} records",() -> fileDataSet.size());
             metadataDao.write(fileDataSet);
-            System.out.println("<< done db");
+            LOG.debug("Writing DB done");
         });
         syncThread.run();
         
@@ -191,7 +189,7 @@ public class DSyncClient {
 
     private CompletableFuture<Void> runPolling() {
         Runnable pollThread = dropboxService.createPollingThread(fileDataSet -> {
-            fileDataSet.forEach(System.out::println);
+            fileDataSet.forEach(fd -> LOG.info("DROPBOX {}", () -> fd.toString()));
             
             Map<DropboxChangeType, List<FileData>> map = fileDataSet.stream()
                     .collect(Collectors.groupingBy(FileData::getChangeType));
@@ -204,7 +202,7 @@ public class DSyncClient {
                 deletes.forEach(fd -> {
                     localFolderService.deleteFileOrFolder(fd.getPathDisplay());
                     metadataDao.deleteByLowerPath(fd);
-                    System.out.println("DELETED " + fd.getPathDisplay());
+                    LOG.info("Removed {}", () -> fd.getPathDisplay());
                 });
             }
             if (folders != null) {
@@ -219,7 +217,7 @@ public class DSyncClient {
     
     private CompletableFuture<Void> runWatching() {
         Runnable watchThread = localFolderService.createFolderWatchingThread((changeType, path) -> {
-            System.out.println(changeType + ": " + path.toAbsolutePath());
+            LOG.info("LOCAL {}", () -> changeType + ": " + path.toAbsolutePath());
         });
         return CompletableFuture.runAsync(watchThread);
     }

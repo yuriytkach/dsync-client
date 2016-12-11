@@ -24,6 +24,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.dropbox.core.v2.files.DownloadErrorException;
 import com.yet.dsync.dao.MetadataDao;
@@ -31,6 +33,8 @@ import com.yet.dsync.dto.FileData;
 import com.yet.dsync.exception.DSyncClientException;
 
 public class DownloadService {
+    
+    private static final Logger LOG = LogManager.getLogger(DownloadService.class);
     
     private static final int QUICK_THREAD_NUMBER = 5;
     private static final int SLOW_THREAD_NUMBER = 2;
@@ -104,9 +108,9 @@ public class DownloadService {
                 } catch (IOException e) {
                     throw new DSyncClientException(e);
                 }
-                System.out.println("DOWNLOADED " + fileData.getPathDisplay());
+                LOG.info("Downloaded {}", ()-> fileData.getPathDisplay());
             } else {
-                System.out.println("SKIP " + fileData.getPathDisplay());
+                LOG.warn("Skipped {}", ()-> fileData.getPathDisplay());
             }
         }
     }
@@ -143,12 +147,12 @@ public class DownloadService {
         localFolderService.createFolder(fileData.getPathDisplay());
         metadaDao.writeLoadedFlag(fileData.getId(), true);
         
-        System.out.println("LOCAL_DIR " + fileData.getPathDisplay());
+        LOG.info("Created directory {}", ()-> fileData.getPathDisplay());
     }
     
     public void downloadAllNotLoaded() {
         Collection<FileData> allNotLoaded = metadaDao.readAllNotLoaded();
-        System.out.println("Downloading " + allNotLoaded.size() + " objects that are not loaded.");
+        LOG.debug("Downloading {} objects that are not loaded..", ()-> allNotLoaded.size());
         allNotLoaded.forEach(this::scheduleDownload);
     }
     

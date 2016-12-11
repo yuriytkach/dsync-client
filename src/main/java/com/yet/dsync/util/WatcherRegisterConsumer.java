@@ -12,13 +12,17 @@ import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 //import com.sun.nio.file.SensitivityWatchEventModifier;
 
 import com.sun.nio.file.ExtendedWatchEventModifier;
 import com.yet.dsync.exception.DSyncClientException;
-import org.apache.commons.lang.SystemUtils;
 
 public class WatcherRegisterConsumer implements Consumer<Path> {
+    
+    private static final Logger LOG = LogManager.getLogger(WatcherRegisterConsumer.class);
 
     private WatchService watchService;
     private Consumer<WatchKey> watchKeyConsumer;
@@ -57,7 +61,7 @@ public class WatcherRegisterConsumer implements Consumer<Path> {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                System.out.println("registering " + dir + " in watcher service");
+                LOG.trace("Registering in watcher server: {}", () -> dir);
                 WatchKey watchKey = dir
                         .register(watchService,
                                 StandardWatchEventKinds.ENTRY_CREATE,
