@@ -29,7 +29,7 @@ import com.yet.dsync.exception.DSyncClientException;
 
 public abstract class AbstractChangeProcessingService<T> {
     
-    private static final Logger LOG = LogManager.getLogger(DownloadService.class);
+    private static final Logger LOG = LogManager.getLogger(AbstractChangeProcessingService.class);
     
     private static final int QUICK_THREAD_NUMBER = 5;
     private static final int SLOW_THREAD_NUMBER = 2;
