@@ -22,13 +22,13 @@ import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.Metadata;
 import com.yet.dsync.dto.DropboxChangeType;
-import com.yet.dsync.dto.FileData;
-import com.yet.dsync.dto.FileData.Builder;
+import com.yet.dsync.dto.DropboxFileData;
+import com.yet.dsync.dto.DropboxFileData.Builder;
 
 public class DropboxUtil {
 
-    public static FileData convertMetadata(Metadata metadata) {
-        FileData.Builder builder = new Builder();
+    public static DropboxFileData convertMetadata(Metadata metadata) {
+        DropboxFileData.Builder builder = new Builder();
         builder
             .changeType(DropboxChangeType.fromMetadata(metadata))
             .pathDisplay(metadata.getPathDisplay())

@@ -16,7 +16,7 @@ package com.yet.dsync.dto;
 
 import java.time.LocalDateTime;
 
-public class FileData {
+public class DropboxFileData {
     
     public static class Builder {
         private DropboxChangeType changeType;
@@ -75,7 +75,7 @@ public class FileData {
             return this;
         }
         
-        public Builder init(FileData fileData) {
+        public Builder init(DropboxFileData fileData) {
             this.changeType = fileData.changeType;
             this.clientModified = fileData.clientModified;
             this.id = fileData.id;
@@ -87,8 +87,8 @@ public class FileData {
             return this;
         }
         
-        public FileData build() {
-            return new FileData(this);
+        public DropboxFileData build() {
+            return new DropboxFileData(this);
         }
     }
 
@@ -108,7 +108,7 @@ public class FileData {
     
     private final LocalDateTime clientModified;
 
-    private FileData(Builder builder) {
+    private DropboxFileData(Builder builder) {
         this.changeType = builder.changeType;
         this.pathDisplay = builder.pathDisplay;
         this.pathLower = builder.pathLower;

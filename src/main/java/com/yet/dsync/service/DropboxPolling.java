@@ -25,7 +25,7 @@ import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.ListFolderLongpollResult;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.yet.dsync.dao.ConfigDao;
-import com.yet.dsync.dto.FileData;
+import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
 
@@ -58,7 +58,7 @@ public class DropboxPolling implements Runnable {
                 cursor = listFolderResult.getCursor();
                 saveCursor(cursor);
                 
-                Set<FileData> fileDataSet = listFolderResult.getEntries().stream()
+                Set<DropboxFileData> fileDataSet = listFolderResult.getEntries().stream()
                     .map(DropboxUtil::convertMetadata)
                     .collect(Collectors.toSet());
                 

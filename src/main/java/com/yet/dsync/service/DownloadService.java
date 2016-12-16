@@ -25,10 +25,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.yet.dsync.dao.MetadataDao;
-import com.yet.dsync.dto.FileData;
+import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.exception.DSyncClientException;
 
-public class DownloadService extends AbstractChangeProcessingService<FileData>{
+public class DownloadService extends AbstractChangeProcessingService<DropboxFileData>{
     
     private static final Logger LOG = LogManager.getLogger(DownloadService.class);
     
@@ -45,7 +45,7 @@ public class DownloadService extends AbstractChangeProcessingService<FileData>{
     }
     
     
-    private void downloadData(FileData fileData) {
+    private void downloadData(DropboxFileData fileData) {
         if (fileData.isDirectory()) {
             createDirectory(fileData);
         } else {
@@ -65,7 +65,7 @@ public class DownloadService extends AbstractChangeProcessingService<FileData>{
         }
     }
 
-    private File resolveFile(FileData fileData) {
+    private File resolveFile(DropboxFileData fileData) {
         final String fileDir = FilenameUtils.getFullPathNoEndSeparator(fileData.getPathDisplay());
         final String fileName = FilenameUtils.getName(fileData.getPathDisplay());
         
@@ -75,13 +75,13 @@ public class DownloadService extends AbstractChangeProcessingService<FileData>{
         if (dir.exists()) {
             fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
         } else {
-            FileData dirData = metadaDao.readByLowerPath(fileDir.toLowerCase());
+            DropboxFileData dirData = metadaDao.readByLowerPath(fileDir.toLowerCase());
             if (dirData != null) {
                 String fileDisplayPath = dirData.getPathDisplay() + File.separator + fileName;
                 
-                FileData.Builder newFileDataBuilder = new FileData.Builder();
+                DropboxFileData.Builder newFileDataBuilder = new DropboxFileData.Builder();
                 newFileDataBuilder.init(fileData).pathDisplay(fileDisplayPath);
-                FileData newFileData = newFileDataBuilder.build();
+                DropboxFileData newFileData = newFileDataBuilder.build();
                 metadaDao.write(newFileData);
                 
                 fullFilePath = localFolderService.buildFileObject(fileDisplayPath).getAbsolutePath();
@@ -93,7 +93,7 @@ public class DownloadService extends AbstractChangeProcessingService<FileData>{
         return new File(fullFilePath);
     }
 
-    private void createDirectory(FileData fileData) {
+    private void createDirectory(DropboxFileData fileData) {
         localFolderService.createFolder(fileData.getPathDisplay());
         metadaDao.writeLoadedFlag(fileData.getId(), true);
         
@@ -101,15 +101,15 @@ public class DownloadService extends AbstractChangeProcessingService<FileData>{
     }
     
     public void downloadAllNotLoaded() {
-        Collection<FileData> allNotLoaded = metadaDao.readAllNotLoaded();
+        Collection<DropboxFileData> allNotLoaded = metadaDao.readAllNotLoaded();
         LOG.debug("Downloading {} objects that are not loaded..", ()-> allNotLoaded.size());
         allNotLoaded.forEach(this::scheduleProcessing);
     }
     
-    private static class FileDataSizeComparator implements Comparator<FileData> {
+    private static class FileDataSizeComparator implements Comparator<DropboxFileData> {
 
         @Override
-        public int compare(FileData a, FileData b) {
+        public int compare(DropboxFileData a, DropboxFileData b) {
             if (a.getRev() == null && b.getRev() != null) {
                 return -1;
             } else if (a.getRev() != null && b.getRev() == null) {
@@ -124,18 +124,18 @@ public class DownloadService extends AbstractChangeProcessingService<FileData>{
     }
 
     @Override
-    protected void processChange(FileData changeData) {
+    protected void processChange(DropboxFileData changeData) {
         downloadData(changeData);
     }
 
     @Override
-    protected boolean isFile(FileData changeData) {
+    protected boolean isFile(DropboxFileData changeData) {
         return changeData.isFile();
     }
 
 
     @Override
-    protected long getFileSize(FileData changeData) {
+    protected long getFileSize(DropboxFileData changeData) {
         return changeData.getSize();
     }
 

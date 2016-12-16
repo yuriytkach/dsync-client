@@ -37,7 +37,7 @@ import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.DropboxChangeType;
-import com.yet.dsync.dto.FileData;
+import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.service.DownloadService;
 import com.yet.dsync.service.DropboxService;
@@ -195,12 +195,12 @@ public class DSyncClient {
         Runnable pollThread = dropboxService.createPollingThread(fileDataSet -> {
             fileDataSet.forEach(fd -> LOG.info("DROPBOX {}", () -> fd.toString()));
             
-            Map<DropboxChangeType, List<FileData>> map = fileDataSet.stream()
-                    .collect(Collectors.groupingBy(FileData::getChangeType));
+            Map<DropboxChangeType, List<DropboxFileData>> map = fileDataSet.stream()
+                    .collect(Collectors.groupingBy(DropboxFileData::getChangeType));
             
-            List<FileData> deletes = map.get(DropboxChangeType.DELETE);
-            List<FileData> folders = map.get(DropboxChangeType.FOLDER);
-            List<FileData> files = map.get(DropboxChangeType.FILE);
+            List<DropboxFileData> deletes = map.get(DropboxChangeType.DELETE);
+            List<DropboxFileData> folders = map.get(DropboxChangeType.FOLDER);
+            List<DropboxFileData> files = map.get(DropboxChangeType.FILE);
             
             if (deletes != null) {
                 deletes.forEach(fd -> {
@@ -210,10 +210,10 @@ public class DSyncClient {
                 });
             }
             if (folders != null) {
-                folders.forEach(downloadService::scheduleDownload);
+                folders.forEach(downloadService::scheduleProcessing);
             }
             if (files != null) {
-                files.forEach(downloadService::scheduleDownload);
+                files.forEach(downloadService::scheduleProcessing);
             }
         });
         return CompletableFuture.runAsync(pollThread, pool);

@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Set;
 
-import com.yet.dsync.dto.FileData;
+import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.exception.DSyncClientException;
 
 public class MetadataDao {
@@ -94,7 +94,7 @@ public class MetadataDao {
         }
     }
     
-    public FileData read(String id) {
+    public DropboxFileData read(String id) {
         try {
             readByIdStatement.setString(COL_ID, id);
             
@@ -109,7 +109,7 @@ public class MetadataDao {
         }
     }
     
-    public synchronized FileData readByLowerPath(String lowerPath) {
+    public synchronized DropboxFileData readByLowerPath(String lowerPath) {
         try {
             readByPLowerStatement.setString(COL_ID, lowerPath);
             
@@ -124,8 +124,8 @@ public class MetadataDao {
         }
     }
 
-    private FileData buildFileData(ResultSet resultSet) throws SQLException {
-        FileData.Builder builder = new FileData.Builder();
+    private DropboxFileData buildFileData(ResultSet resultSet) throws SQLException {
+        DropboxFileData.Builder builder = new DropboxFileData.Builder();
         final BigDecimal size = resultSet.getBigDecimal(COL_SIZE);
         builder
             .id(resultSet.getString(COL_ID))
@@ -138,7 +138,7 @@ public class MetadataDao {
         return builder.build();
     }
     
-    public synchronized void write(FileData fileData) {
+    public synchronized void write(DropboxFileData fileData) {
         try {
             readByIdStatement.setString(COL_ID, fileData.getId());
             
@@ -163,7 +163,7 @@ public class MetadataDao {
         }
     }
 
-    private void fillInsertStatement(FileData fileData) throws SQLException {
+    private void fillInsertStatement(DropboxFileData fileData) throws SQLException {
         insertStatement.setString(COL_ID, fileData.getId());
         insertStatement.setString(COL_PATH, fileData.getPathDisplay());
         insertStatement.setString(COL_PATH_LOWER, fileData.getPathLower());
@@ -174,7 +174,7 @@ public class MetadataDao {
         setStatementParams(insertStatement, COL_CLIDATE, dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
     }
     
-    public void write(Set<FileData> fileDataSet) {
+    public void write(Set<DropboxFileData> fileDataSet) {
         try {
             fileDataSet.forEach(fileData -> {
                 
@@ -194,14 +194,14 @@ public class MetadataDao {
         }
     }
     
-    public Collection<FileData> readAllNotLoaded() {
+    public Collection<DropboxFileData> readAllNotLoaded() {
         try {
             ResultSet resultSet = readNotLoadedStatement.executeQuery();
             
-            Collection<FileData> allFileData = new LinkedList<>();
+            Collection<DropboxFileData> allFileData = new LinkedList<>();
             
             while (resultSet.next()) {
-                FileData fileData = buildFileData(resultSet);
+                DropboxFileData fileData = buildFileData(resultSet);
                 allFileData.add(fileData);
             }
             
@@ -222,7 +222,7 @@ public class MetadataDao {
         }
     }
     
-    public void deleteByLowerPath(FileData fileData) {
+    public void deleteByLowerPath(DropboxFileData fileData) {
         try {
             deleteByPathStatement.setString(1, fileData.getPathLower());
             

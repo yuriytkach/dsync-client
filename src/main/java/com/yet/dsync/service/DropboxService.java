@@ -39,7 +39,7 @@ import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
 import com.yet.dsync.dao.ConfigDao;
-import com.yet.dsync.dto.FileData;
+import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
@@ -136,7 +136,7 @@ public class DropboxService {
                     listFolderResult = client.files().listFolderBuilder("")
                         .withRecursive(Boolean.TRUE).start();
                     
-                    Set<FileData> fileDataSet = listFolderResult.getEntries().stream()
+                    Set<DropboxFileData> fileDataSet = listFolderResult.getEntries().stream()
                             .map(DropboxUtil::convertMetadata)
                             .collect(Collectors.toSet());
                         
@@ -149,7 +149,7 @@ public class DropboxService {
                 while (listFolderResult == null || listFolderResult.getHasMore()) {
                     listFolderResult = client.files().listFolderContinue(cursor);
                     
-                    Set<FileData> fileDataSet = listFolderResult.getEntries().stream()
+                    Set<DropboxFileData> fileDataSet = listFolderResult.getEntries().stream()
                             .map(DropboxUtil::convertMetadata)
                             .collect(Collectors.toSet());
                         
