@@ -14,13 +14,11 @@
 
 package com.yet.dsync.service;
 
-import java.nio.file.Path;
-
-import com.yet.dsync.dto.LocalFolderChangeType;
+import com.yet.dsync.dto.LocalFolderData;
 
 @FunctionalInterface
 public interface LocalFolderChange {
     
-    void processChange(LocalFolderChangeType changeType, Path path);
+    void processChange(LocalFolderData localFolderData);
 
 }

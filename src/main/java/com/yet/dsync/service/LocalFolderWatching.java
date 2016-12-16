@@ -29,18 +29,25 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.LocalFolderChangeType;
+import com.yet.dsync.dto.LocalFolderData;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.WatcherRegisterConsumer;
 
 public class LocalFolderWatching implements Runnable {
     
+    private static final int WAIT_THREAD_COUNT = 10;
+
+    private static final int LOCAL_CHANGE_WAIT_TIME = 1000;
+
     private static final Logger LOG = LogManager.getLogger(LocalFolderWatching.class);
 
     private final ConfigDao configDao;
@@ -48,7 +55,7 @@ public class LocalFolderWatching implements Runnable {
 
     private final WatchService watchService;
 
-    private final BlockingQueue<Path> createdPathes = new LinkedBlockingDeque<>(10);
+    private final BlockingQueue<LocalFolderData> localPatheChanges = new LinkedBlockingDeque<>(10);
     private Map<WatchKey, Path> keys;
     private WatcherRegisterConsumer watcherConsumer;
 
@@ -68,24 +75,12 @@ public class LocalFolderWatching implements Runnable {
             keys.put(key, path);
         });
 
-        final ExecutorService executorService = Executors.newFixedThreadPool(10);
-        for (int i = 0; i < 10; i++) {
-            executorService.execute(() -> {
-                try {
-                    Path path = createdPathes.take();
-
-                    Thread.sleep(1000);
-
-                    if (path.toFile().isDirectory()) {
-                        watcherConsumer.accept(path);
-                    }
-
-                    changeListener.processChange(LocalFolderChangeType.CREATE, path);
-                } catch (InterruptedException e) {
-                    LOG.error("Interrupted watcher", e);
-                }
-
-            });
+        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+                .setNameFormat("local-wait-%d").build();
+        
+        final ExecutorService executorService = Executors.newFixedThreadPool(WAIT_THREAD_COUNT, namedThreadFactory);
+        for (int i = 0; i < WAIT_THREAD_COUNT; i++) {
+            executorService.execute(new ChangeWaitThread());
         }
     }
 
@@ -126,17 +121,13 @@ public class LocalFolderWatching implements Runnable {
                     Path path = dir.resolve(event.context());
 
                     LocalFolderChangeType changeType = LocalFolderChangeType.fromWatchEventKind(watchEventKind);
-
-                    switch (changeType) {
-                    case CREATE:
-                        try {
-                            createdPathes.put(path);
-                        } catch (Exception e1) {
-                            LOG.error("Interrupted", e1);
-                        }
-                        break;
-                    default:
-                        changeListener.processChange(changeType, path);
+                    
+                    LocalFolderData localPathChange = new LocalFolderData(path, changeType);
+                    
+                    try {
+                        localPatheChanges.put(localPathChange);
+                    } catch (Exception e1) {
+                        LOG.error("Interrupted", e1);
                     }
                 });
 
@@ -152,6 +143,27 @@ public class LocalFolderWatching implements Runnable {
         } catch (IOException e) {
             throw new DSyncClientException(e);
         }
+    }
+    
+    private class ChangeWaitThread implements Runnable {
+
+        @Override
+        public void run() {
+            try {
+                LocalFolderData folderData = localPatheChanges.take();
+
+                Thread.sleep(LOCAL_CHANGE_WAIT_TIME);
+
+                if ( ! folderData.isFile() ) {
+                    watcherConsumer.accept(folderData.getPath());
+                }
+
+                changeListener.processChange(folderData);
+            } catch (InterruptedException e) {
+                LOG.error("Interrupted watcher", e);
+            }
+        }
+        
     }
 
 }

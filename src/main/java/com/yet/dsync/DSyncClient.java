@@ -220,8 +220,8 @@ public class DSyncClient {
     }
     
     private CompletableFuture<Void> runWatching(ExecutorService pool) {
-        Runnable watchThread = localFolderService.createFolderWatchingThread((changeType, path) -> {
-            LOG.info("LOCAL {}", () -> changeType + ": " + path.toAbsolutePath());
+        Runnable watchThread = localFolderService.createFolderWatchingThread(localFolderChange -> {
+            LOG.info(localFolderChange);
         });
         return CompletableFuture.runAsync(watchThread, pool);
     }
