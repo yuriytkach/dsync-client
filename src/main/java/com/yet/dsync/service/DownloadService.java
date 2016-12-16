@@ -18,88 +18,32 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.ThreadFactory;
+import java.util.Comparator;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.dropbox.core.v2.files.DownloadErrorException;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.FileData;
 import com.yet.dsync.exception.DSyncClientException;
 
-public class DownloadService {
+public class DownloadService extends AbstractChangeProcessingService<FileData>{
     
     private static final Logger LOG = LogManager.getLogger(DownloadService.class);
-    
-    private static final int QUICK_THREAD_NUMBER = 5;
-    private static final int SLOW_THREAD_NUMBER = 2;
-    
-    private static final long SLOW_THRESHOLD = 256*1024; //256KB
     
     private final MetadataDao metadaDao;
     private final LocalFolderService localFolderService;
     private final DropboxService dropboxService;
     
-    private final BlockingQueue<FileData> quickDownloadQueue;
-    private final BlockingQueue<FileData> slowDownloadQueue;
-    
-    private final ExecutorService executorService;
-    
     public DownloadService(MetadataDao metadaDao, LocalFolderService localFolderService, DropboxService dropboxService) {
+        super("download", new FileDataSizeComparator());
+        
         this.metadaDao = metadaDao;
         this.localFolderService = localFolderService;
         this.dropboxService = dropboxService;
-        
-        this.slowDownloadQueue = createDownloadQueue();
-        this.quickDownloadQueue = createDownloadQueue();
-        
-        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
-                .setNameFormat("download-thread-%d").build();
-        
-        this.executorService = Executors.newFixedThreadPool(SLOW_THREAD_NUMBER + QUICK_THREAD_NUMBER,
-                namedThreadFactory);
-        
-        initDownloadThreads();
     }
     
-    /**
-     * Creating PriorityBlockingQueue.
-     * Note! It is unbounded, so in the future we might need to enhance it to make it bounded,
-     * so the caller will block before putting next elem them. Also, we can think of different
-     * download threads, some of which will handle only directories and small files, another
-     * will handle only big files.
-     * For now, we make priority in the following way: folders, small files, big files;
-     */
-    private BlockingQueue<FileData> createDownloadQueue() {
-        return new PriorityBlockingQueue<FileData>(100, (a, b) -> {
-            if (a.getRev() == null && b.getRev() != null) {
-                return -1;
-            } else if (a.getRev() != null && b.getRev() == null) {
-                return 1;
-            } else if (a.getRev() != null && b.getRev() != null) {
-                return a.getSize().intValue() - b.getSize().intValue();
-            } else {
-                return a.getPathDisplay().compareTo(b.getPathDisplay());
-            }
-        });
-    }
-    
-    private void initDownloadThreads() {
-        for (int i=0; i < QUICK_THREAD_NUMBER; i++) {
-            executorService.submit(new DownloadThread(quickDownloadQueue));
-        }
-        
-        for (int i=0; i < SLOW_THREAD_NUMBER; i++) {
-            executorService.submit(new DownloadThread(slowDownloadQueue));
-        }
-    }
     
     private void downloadData(FileData fileData) {
         if (fileData.isDirectory()) {
@@ -159,58 +103,40 @@ public class DownloadService {
     public void downloadAllNotLoaded() {
         Collection<FileData> allNotLoaded = metadaDao.readAllNotLoaded();
         LOG.debug("Downloading {} objects that are not loaded..", ()-> allNotLoaded.size());
-        allNotLoaded.forEach(this::scheduleDownload);
+        allNotLoaded.forEach(this::scheduleProcessing);
     }
     
-    public void scheduleDownload(FileData fileData) {
-        try {
-            if (fileData.isFile()) {
-                long size = fileData.getSize();
-                if (size > SLOW_THRESHOLD) {
-                    slowDownloadQueue.put(fileData);
-                } else {
-                    quickDownloadQueue.put(fileData);
-                }
-            } else {
-                quickDownloadQueue.put(fileData);
-            }
-        } catch (Exception e) {
-            throw new DSyncClientException(e);
-        }
-    }
-    
-    private class DownloadThread implements Runnable {
-
-        private BlockingQueue<FileData> queue;
-        
-        public DownloadThread(BlockingQueue<FileData> queue) {
-            this.queue = queue;
-        }
+    private static class FileDataSizeComparator implements Comparator<FileData> {
 
         @Override
-        public void run() {
-            while (!Thread.interrupted()) {
-                try {
-                    FileData fileData = queue.take();
-                    try {
-                        downloadData(fileData);
-                    } catch (DSyncClientException dee) {
-                        if (dee.getCause() instanceof DownloadErrorException) {
-                            // TODO That is not correct. And we need to check, maybe
-                            // other thread already deleted that file and its metadata
-                            // while we were waiting for this one to download
-                            metadaDao.deleteByLowerPath(fileData);
-                        } else {
-                            throw dee;
-                        }
-                    }
-                    
-                } catch (Exception e) {
-                    LOG.error("Failed to download file", e);
-                }
+        public int compare(FileData a, FileData b) {
+            if (a.getRev() == null && b.getRev() != null) {
+                return -1;
+            } else if (a.getRev() != null && b.getRev() == null) {
+                return 1;
+            } else if (a.getRev() != null && b.getRev() != null) {
+                return a.getSize().intValue() - b.getSize().intValue();
+            } else {
+                return a.getPathDisplay().compareTo(b.getPathDisplay());
             }
         }
         
+    }
+
+    @Override
+    protected void processChange(FileData changeData) {
+        downloadData(changeData);
+    }
+
+    @Override
+    protected boolean isFile(FileData changeData) {
+        return changeData.isFile();
+    }
+
+
+    @Override
+    protected long getFileSize(FileData changeData) {
+        return changeData.getSize();
     }
 
 }
