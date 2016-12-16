@@ -22,12 +22,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.dropbox.core.v2.files.DownloadErrorException;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.FileData;
 import com.yet.dsync.exception.DSyncClientException;
@@ -58,7 +60,11 @@ public class DownloadService {
         this.slowDownloadQueue = createDownloadQueue();
         this.quickDownloadQueue = createDownloadQueue();
         
-        this.executorService = Executors.newFixedThreadPool(SLOW_THREAD_NUMBER + QUICK_THREAD_NUMBER);
+        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+                .setNameFormat("download-thread-%d").build();
+        
+        this.executorService = Executors.newFixedThreadPool(SLOW_THREAD_NUMBER + QUICK_THREAD_NUMBER,
+                namedThreadFactory);
         
         initDownloadThreads();
     }
@@ -200,7 +206,7 @@ public class DownloadService {
                     }
                     
                 } catch (Exception e) {
-                    System.err.println("Failed to download file: " + e.getMessage());
+                    LOG.error("Failed to download file", e);
                 }
             }
         }
