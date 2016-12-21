@@ -38,6 +38,14 @@ public class LocalFolderData  {
         return path.toFile().isFile();
     }
     
+    public boolean isDirectory() {
+        return path.toFile().isDirectory();
+    }
+    
+    public boolean exists() {
+        return path.toFile().exists();
+    }
+    
     public long getSize() {
         return path.toFile().length();
     }

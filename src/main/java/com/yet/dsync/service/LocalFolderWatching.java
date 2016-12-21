@@ -124,6 +124,8 @@ public class LocalFolderWatching implements Runnable {
                     
                     LocalFolderData localPathChange = new LocalFolderData(path, changeType);
                     
+                    LOG.trace("Local event {} on path {}", changeType, localPathChange);
+                    
                     try {
                         localPatheChanges.put(localPathChange);
                     } catch (Exception e1) {
@@ -154,7 +156,7 @@ public class LocalFolderWatching implements Runnable {
 
                 Thread.sleep(LOCAL_CHANGE_WAIT_TIME);
 
-                if ( ! folderData.isFile() ) {
+                if ( folderData.exists() && folderData.isDirectory() ) {
                     watcherConsumer.accept(folderData.getPath());
                 }
 
