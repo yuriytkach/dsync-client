@@ -124,7 +124,7 @@ public class LocalFolderWatching implements Runnable {
                     
                     LocalFolderData localPathChange = new LocalFolderData(path, changeType);
                     
-                    LOG.trace("Local event {} on path {}", changeType, localPathChange);
+                    LOG.trace("Local event {} on path {}", changeType, path);
                     
                     try {
                         localPatheChanges.put(localPathChange);
@@ -136,10 +136,12 @@ public class LocalFolderWatching implements Runnable {
                 boolean valid = key.reset(); // IMPORTANT: The key must be reset
                                              // after processed
                 if (!valid) {
-                    break;
+                    LOG.warn("Key reset was not valid. Discard key and continue");
+                    continue;
                 }
             }
 
+            LOG.debug("Closing watchService");
             watchService.close();
 
         } catch (IOException e) {
@@ -151,18 +153,20 @@ public class LocalFolderWatching implements Runnable {
 
         @Override
         public void run() {
-            try {
-                LocalFolderData folderData = localPatheChanges.take();
-
-                Thread.sleep(LOCAL_CHANGE_WAIT_TIME);
-
-                if ( folderData.exists() && folderData.isDirectory() ) {
-                    watcherConsumer.accept(folderData.getPath());
+            while (!Thread.interrupted()) {
+                try {
+                    LocalFolderData folderData = localPatheChanges.take();
+    
+                    Thread.sleep(LOCAL_CHANGE_WAIT_TIME);
+    
+                    if ( folderData.exists() && folderData.isDirectory() ) {
+                        watcherConsumer.accept(folderData.getPath());
+                    }
+    
+                    changeListener.processChange(folderData);
+                } catch (InterruptedException e) {
+                    LOG.error("Interrupted watcher", e);
                 }
-
-                changeListener.processChange(folderData);
-            } catch (InterruptedException e) {
-                LOG.error("Interrupted watcher", e);
             }
         }
         
