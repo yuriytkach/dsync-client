@@ -15,9 +15,10 @@
 package com.yet.dsync.service;
 
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,6 +37,7 @@ import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderGetLatestCursorResult;
 import com.dropbox.core.v2.files.ListFolderResult;
+import com.dropbox.core.v2.files.UploadUploader;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
 import com.yet.dsync.dao.ConfigDao;
@@ -48,6 +50,9 @@ import com.yet.dsync.util.DropboxUtil;
 public class DropboxService {
     
     private static final Logger LOG = LogManager.getLogger(DropboxService.class);
+    
+    /* According to API, can't upload chunks/files more than 150MB */
+    private static final long MAX_FILE_UPLOAD_CHUNK = 150 * 1024 * 1024;
 
     private DbxClientV2 client;
     private DbxRequestConfig config;
@@ -165,11 +170,11 @@ public class DropboxService {
         };
     }
     
-    public void downloadFile(String path, FileOutputStream fileOutputStream) {
+    public void downloadFile(String path, OutputStream outputStream) {
         try {
             DbxDownloader<FileMetadata> downloader = client.files().download(path);
             
-            downloader.download(fileOutputStream);
+            downloader.download(outputStream);
         } catch (Exception ex) {
             LOG.error("Failed to download from Dropbox: " + path, ex);
             throw new DSyncClientException(ex);
@@ -191,6 +196,21 @@ public class DropboxService {
         } catch (DbxException e) {
             LOG.error("Failed to create folder in Dropbox: " + dropboxPath, e);
             throw new DSyncClientException(e);
+        }
+    }
+
+    public void uploadFile(String dropboxPath, InputStream inputStream, long size) {
+        try {
+            
+            if (size <= MAX_FILE_UPLOAD_CHUNK) {
+                LOG.trace("File size is smaller than 150MB. Uploading in single call ({})", () -> dropboxPath);
+                UploadUploader uploader = client.files().upload(dropboxPath);
+                uploader.uploadAndFinish(inputStream);
+            }
+            
+        } catch (Exception ex) {
+            LOG.error("Failed to upload file to Dropbox: " + dropboxPath, ex);
+            throw new DSyncClientException(ex);
         }
     }
 

@@ -1,10 +1,16 @@
 package com.yet.dsync.service;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.LocalFolderData;
+import com.yet.dsync.exception.DSyncClientException;
 
 public class UploadService
         extends AbstractChangeProcessingService<LocalFolderData> {
@@ -37,6 +43,21 @@ public class UploadService
             
         } else if (changeData.isDirectory()) {
             createDirectory(dropboxPath);
+            
+        } else {
+            uploadFile(dropboxPath, changeData);
+        }
+    }
+
+    private void uploadFile(String dropboxPath, LocalFolderData changeData) {
+        File file = changeData.getPath().toFile();
+        try (InputStream is = new FileInputStream(file)) {
+            
+            dropboxService.uploadFile(dropboxPath, is, changeData.getSize());
+            
+        } catch (IOException e) {
+            LOG.error("Error when reading file for upload", e);
+            throw new DSyncClientException(e);
         }
     }
 
