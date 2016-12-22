@@ -24,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.yet.dsync.dao.MetadataDao;
+import com.yet.dsync.dto.DropboxChangeType;
 import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.exception.DSyncClientException;
 
@@ -33,7 +34,7 @@ public class DownloadService
     private static final Logger LOG = LogManager
             .getLogger(DownloadService.class);
 
-    private final MetadataDao metadaDao;
+    private final MetadataDao metadataDao;
     private final LocalFolderService localFolderService;
     private final DropboxService dropboxService;
 
@@ -42,13 +43,15 @@ public class DownloadService
             DropboxService dropboxService) {
         super("download");
 
-        this.metadaDao = metadaDao;
+        this.metadataDao = metadaDao;
         this.localFolderService = localFolderService;
         this.dropboxService = dropboxService;
     }
 
     private void downloadData(DropboxFileData fileData) {
-        if (fileData.isDirectory()) {
+        if (DropboxChangeType.DELETE == fileData.getChangeType()) {
+            deleteFileOrDirectory(fileData);
+        } else if (fileData.isDirectory()) {
             createDirectory(fileData);
         } else {
             File file = resolveFile(fileData);
@@ -56,7 +59,7 @@ public class DownloadService
             if (file.getParentFile().exists()) {
                 try (FileOutputStream fos = new FileOutputStream(file)) {
                     dropboxService.downloadFile(fileData.getPathDisplay(), fos);
-                    metadaDao.writeLoadedFlag(fileData.getId(), true);
+                    metadataDao.writeLoadedFlag(fileData.getId(), true);
                 } catch (IOException e) {
                     throw new DSyncClientException(e);
                 }
@@ -65,6 +68,19 @@ public class DownloadService
                 LOG.warn("Skipped {}", () -> fileData.getPathDisplay());
             }
         }
+    }
+
+    private void deleteFileOrDirectory(DropboxFileData fd) {
+        localFolderService.deleteFileOrFolder(fd.getPathDisplay());
+        metadataDao.deleteByLowerPath(fd);
+        LOG.info("Removed {}", () -> fd.getPathDisplay());
+    }
+    
+    private void createDirectory(DropboxFileData fileData) {
+        localFolderService.createFolder(fileData.getPathDisplay());
+        metadataDao.writeLoadedFlag(fileData.getId(), true);
+
+        LOG.info("Created directory {}", () -> fileData.getPathDisplay());
     }
 
     private File resolveFile(DropboxFileData fileData) {
@@ -79,7 +95,7 @@ public class DownloadService
         if (dir.exists()) {
             fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
         } else {
-            DropboxFileData dirData = metadaDao
+            DropboxFileData dirData = metadataDao
                     .readByLowerPath(fileDir.toLowerCase());
             if (dirData != null) {
                 String fileDisplayPath = dirData.getPathDisplay()
@@ -88,7 +104,7 @@ public class DownloadService
                 DropboxFileData.Builder newFileDataBuilder = new DropboxFileData.Builder();
                 newFileDataBuilder.init(fileData).pathDisplay(fileDisplayPath);
                 DropboxFileData newFileData = newFileDataBuilder.build();
-                metadaDao.write(newFileData);
+                metadataDao.write(newFileData);
 
                 fullFilePath = localFolderService
                         .buildFileObject(fileDisplayPath).getAbsolutePath();
@@ -101,15 +117,8 @@ public class DownloadService
         return new File(fullFilePath);
     }
 
-    private void createDirectory(DropboxFileData fileData) {
-        localFolderService.createFolder(fileData.getPathDisplay());
-        metadaDao.writeLoadedFlag(fileData.getId(), true);
-
-        LOG.info("Created directory {}", () -> fileData.getPathDisplay());
-    }
-
     public void downloadAllNotLoaded() {
-        Collection<DropboxFileData> allNotLoaded = metadaDao.readAllNotLoaded();
+        Collection<DropboxFileData> allNotLoaded = metadataDao.readAllNotLoaded();
         LOG.debug("Downloading {} objects that are not loaded..",
                 () -> allNotLoaded.size());
         allNotLoaded.forEach(this::scheduleProcessing);

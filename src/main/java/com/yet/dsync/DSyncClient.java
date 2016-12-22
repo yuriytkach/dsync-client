@@ -16,12 +16,9 @@ package com.yet.dsync;
 
 import java.io.File;
 import java.sql.Connection;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -36,12 +33,11 @@ import org.apache.logging.log4j.Logger;
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
-import com.yet.dsync.dto.DropboxChangeType;
-import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.service.DownloadService;
 import com.yet.dsync.service.DropboxService;
 import com.yet.dsync.service.LocalFolderService;
+import com.yet.dsync.service.UploadService;
 import com.yet.dsync.util.Config;
 
 public class DSyncClient {
@@ -86,6 +82,7 @@ public class DSyncClient {
     private LocalFolderService localFolderService;
     
     private DownloadService downloadService;
+    private UploadService uploadService;
     
     private ConfigDao configDao;
     private MetadataDao metadataDao;
@@ -156,6 +153,7 @@ public class DSyncClient {
         dropboxService = new DropboxService(configDao);
         
         downloadService = new DownloadService(metadataDao, localFolderService, dropboxService);
+        uploadService = new UploadService(metadataDao, localFolderService, dropboxService);
     }
 
     private void startServices() {
@@ -193,35 +191,18 @@ public class DSyncClient {
 
     private CompletableFuture<Void> runPolling(ExecutorService pool) {
         Runnable pollThread = dropboxService.createPollingThread(fileDataSet -> {
-            fileDataSet.forEach(fd -> LOG.info("DROPBOX {}", () -> fd.toString()));
-            
-            Map<DropboxChangeType, List<DropboxFileData>> map = fileDataSet.stream()
-                    .collect(Collectors.groupingBy(DropboxFileData::getChangeType));
-            
-            List<DropboxFileData> deletes = map.get(DropboxChangeType.DELETE);
-            List<DropboxFileData> folders = map.get(DropboxChangeType.FOLDER);
-            List<DropboxFileData> files = map.get(DropboxChangeType.FILE);
-            
-            if (deletes != null) {
-                deletes.forEach(fd -> {
-                    localFolderService.deleteFileOrFolder(fd.getPathDisplay());
-                    metadataDao.deleteByLowerPath(fd);
-                    LOG.info("Removed {}", () -> fd.getPathDisplay());
-                });
-            }
-            if (folders != null) {
-                folders.forEach(downloadService::scheduleProcessing);
-            }
-            if (files != null) {
-                files.forEach(downloadService::scheduleProcessing);
-            }
+            fileDataSet.forEach(dropboxFileData -> {
+                LOG.info("DROPBOX {}", () -> dropboxFileData.toString());
+                downloadService.scheduleProcessing(dropboxFileData);
+            });
         });
         return CompletableFuture.runAsync(pollThread, pool);
     }
     
     private CompletableFuture<Void> runWatching(ExecutorService pool) {
-        Runnable watchThread = localFolderService.createFolderWatchingThread(localFolderChange -> {
-            LOG.info(localFolderChange);
+        Runnable watchThread = localFolderService.createFolderWatchingThread(localFolderData -> {
+            LOG.info(localFolderData);
+            uploadService.scheduleProcessing(localFolderData);
         });
         return CompletableFuture.runAsync(watchThread, pool);
     }

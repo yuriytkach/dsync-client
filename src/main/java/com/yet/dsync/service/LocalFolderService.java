@@ -118,6 +118,12 @@ public class LocalFolderService {
         return new File(localDir.getAbsolutePath() + path);
     }
     
+    public String extractDropboxPath(File file) {
+        String fullFilePath = file.getAbsolutePath();
+        String fullLocalDirPath = localDir.getAbsolutePath();
+        return fullFilePath.substring(fullLocalDirPath.length());
+    }
+    
     public Runnable createFolderWatchingThread(LocalFolderChange changeListener) {
         return new LocalFolderWatching(configDao, changeListener);
     }
