@@ -42,7 +42,7 @@ public class LocalFolderData  {
         return path.toFile().isDirectory();
     }
     
-    public boolean exists() {
+    public boolean fileExists() {
         return path.toFile().exists();
     }
     

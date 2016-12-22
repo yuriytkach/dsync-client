@@ -201,7 +201,7 @@ public class LocalFolderWatching implements Runnable {
                         break;
                     case CREATE:
                         // If that's folder, then registering it for watching
-                        if (folderData.exists() && folderData.isDirectory()) {
+                        if (folderData.fileExists() && folderData.isDirectory()) {
                             watcherConsumer.accept(folderData.getPath());
                             changeListener.processChange(folderData);
                         } else {
