@@ -26,7 +26,26 @@ public class UploadService
 
     @Override
     protected void processChange(LocalFolderData changeData) {
-        LOG.warn("Doing nothing :)");
+        uploadData(changeData);
+    }
+
+    private void uploadData(LocalFolderData changeData) {
+        String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath().toFile());
+        
+        if (! changeData.fileExists() ) {
+            deleteData(dropboxPath);
+            
+        } else if (changeData.isDirectory()) {
+            createDirectory(dropboxPath);
+        }
+    }
+
+    private void createDirectory(String dropboxPath) {
+        dropboxService.createFolder(dropboxPath);
+    }
+
+    private void deleteData(String dropboxPath) {
+        dropboxService.deleteFile(dropboxPath);
     }
 
     @Override
@@ -41,7 +60,7 @@ public class UploadService
 
     @Override
     protected boolean isDeleteData(LocalFolderData changeData) {
-        return !changeData.exists();
+        return !changeData.fileExists();
     }
 
 }

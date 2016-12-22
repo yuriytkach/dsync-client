@@ -167,13 +167,30 @@ public class DropboxService {
     
     public void downloadFile(String path, FileOutputStream fileOutputStream) {
         try {
-            
             DbxDownloader<FileMetadata> downloader = client.files().download(path);
             
             downloader.download(fileOutputStream);
-            
         } catch (Exception ex) {
+            LOG.error("Failed to download from Dropbox: " + path, ex);
             throw new DSyncClientException(ex);
+        }
+    }
+
+    public void deleteFile(String dropboxPath) {
+        try {
+            client.files().delete(dropboxPath);
+        } catch (DbxException e) {
+            LOG.error("Failed to delete from Dropbox: " + dropboxPath, e);
+            throw new DSyncClientException(e);
+        }
+    }
+    
+    public void createFolder(String dropboxPath) {
+        try {
+            client.files().createFolder(dropboxPath);
+        } catch (DbxException e) {
+            LOG.error("Failed to create folder in Dropbox: " + dropboxPath, e);
+            throw new DSyncClientException(e);
         }
     }
 
