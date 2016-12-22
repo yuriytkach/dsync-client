@@ -38,3 +38,7 @@ Configutation:
           level: trace
           AppenderRef:
             - ref: RollingFile_Appender
+
+      Logger:
+        - name: com.yet.dsync.service.LocalFolderWatching
+          level: debug

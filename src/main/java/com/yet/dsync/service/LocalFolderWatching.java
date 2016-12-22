@@ -14,6 +14,7 @@
 
 package com.yet.dsync.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -24,12 +25,19 @@ import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,23 +51,30 @@ import com.yet.dsync.util.Config;
 import com.yet.dsync.util.WatcherRegisterConsumer;
 
 public class LocalFolderWatching implements Runnable {
-    
+
     private static final int WAIT_THREAD_COUNT = 10;
 
     private static final int LOCAL_CHANGE_WAIT_TIME = 1000;
 
-    private static final Logger LOG = LogManager.getLogger(LocalFolderWatching.class);
+    private static final int FILE_WAIT_TIME_SEC = 3;
+
+    private static final Logger LOG = LogManager
+            .getLogger(LocalFolderWatching.class);
 
     private final ConfigDao configDao;
     private final LocalFolderChange changeListener;
 
     private final WatchService watchService;
 
-    private final BlockingQueue<LocalFolderData> localPatheChanges = new LinkedBlockingDeque<>(10);
+    private final BlockingQueue<LocalFolderData> localPatheChanges = new LinkedBlockingDeque<>(
+            10);
     private Map<WatchKey, Path> keys;
     private WatcherRegisterConsumer watcherConsumer;
 
-    public LocalFolderWatching(ConfigDao configDao, LocalFolderChange changeListener) {
+    private ConcurrentMap<Path, FileChangeData> filesModifiedMap = new ConcurrentHashMap<>();
+
+    public LocalFolderWatching(ConfigDao configDao,
+            LocalFolderChange changeListener) {
         this.configDao = configDao;
         this.changeListener = changeListener;
         try {
@@ -76,12 +91,21 @@ public class LocalFolderWatching implements Runnable {
         });
 
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
-                .setNameFormat("local-wait-%d").build();
-        
-        final ExecutorService executorService = Executors.newFixedThreadPool(WAIT_THREAD_COUNT, namedThreadFactory);
+                .setNameFormat("local-change-wait-%d").build();
+
+        final ExecutorService executorService = Executors
+                .newFixedThreadPool(WAIT_THREAD_COUNT, namedThreadFactory);
         for (int i = 0; i < WAIT_THREAD_COUNT; i++) {
             executorService.execute(new ChangeWaitThread());
         }
+
+        namedThreadFactory = new ThreadFactoryBuilder()
+                .setNameFormat("local-file-wait-%d").build();
+
+        final ScheduledExecutorService executorServiceForFiles = Executors
+                .newSingleThreadScheduledExecutor(namedThreadFactory);
+        executorServiceForFiles.scheduleAtFixedRate(new FileWaitThread(),
+                FILE_WAIT_TIME_SEC, FILE_WAIT_TIME_SEC, TimeUnit.SECONDS);
     }
 
     @Override
@@ -112,31 +136,38 @@ public class LocalFolderWatching implements Runnable {
                     continue;
                 }
 
-                key.pollEvents().stream().filter(e -> (e.kind() != StandardWatchEventKinds.OVERFLOW)).forEach(e -> {
-                    @SuppressWarnings("unchecked")
-                    WatchEvent<Path> event = (WatchEvent<Path>) e;
+                key.pollEvents()
+                        .stream().filter(
+                                e -> (e.kind() != StandardWatchEventKinds.OVERFLOW))
+                        .forEach(e -> {
+                            @SuppressWarnings("unchecked")
+                            WatchEvent<Path> event = (WatchEvent<Path>) e;
 
-                    Kind<Path> watchEventKind = event.kind();
+                            Kind<Path> watchEventKind = event.kind();
 
-                    Path path = dir.resolve(event.context());
+                            Path path = dir.resolve(event.context());
 
-                    LocalFolderChangeType changeType = LocalFolderChangeType.fromWatchEventKind(watchEventKind);
-                    
-                    LocalFolderData localPathChange = new LocalFolderData(path, changeType);
-                    
-                    LOG.trace("Local event {} on path {}", changeType, path);
-                    
-                    try {
-                        localPatheChanges.put(localPathChange);
-                    } catch (Exception e1) {
-                        LOG.error("Interrupted", e1);
-                    }
-                });
+                            LocalFolderChangeType changeType = LocalFolderChangeType
+                                    .fromWatchEventKind(watchEventKind);
+
+                            LocalFolderData localPathChange = new LocalFolderData(
+                                    path, changeType);
+
+                            // LOG.trace("Local event {} on path {}",
+                            // changeType, path);
+
+                            try {
+                                localPatheChanges.put(localPathChange);
+                            } catch (Exception e1) {
+                                LOG.error("Interrupted", e1);
+                            }
+                        });
 
                 boolean valid = key.reset(); // IMPORTANT: The key must be reset
                                              // after processed
                 if (!valid) {
-                    LOG.warn("Key reset was not valid. Discard key and continue");
+                    LOG.warn(
+                            "Key reset was not valid. Discard key and continue");
                     continue;
                 }
             }
@@ -148,7 +179,7 @@ public class LocalFolderWatching implements Runnable {
             throw new DSyncClientException(e);
         }
     }
-    
+
     private class ChangeWaitThread implements Runnable {
 
         @Override
@@ -156,20 +187,145 @@ public class LocalFolderWatching implements Runnable {
             while (!Thread.interrupted()) {
                 try {
                     LocalFolderData folderData = localPatheChanges.take();
-    
+
                     Thread.sleep(LOCAL_CHANGE_WAIT_TIME);
-    
-                    if ( folderData.exists() && folderData.isDirectory() ) {
-                        watcherConsumer.accept(folderData.getPath());
+
+                    LocalFolderChangeType changeType = folderData
+                            .getChangeType();
+
+                    switch (changeType) {
+                    case DELETE:
+                        filesModifiedMap.remove(folderData.getPath());
+                        // Forwarding delete, as nothing to be done here
+                        changeListener.processChange(folderData);
+                        break;
+                    case CREATE:
+                        // If that's folder, then registering it for watching
+                        if (folderData.exists() && folderData.isDirectory()) {
+                            watcherConsumer.accept(folderData.getPath());
+                            changeListener.processChange(folderData);
+                        } else {
+                            filesModifiedMap.put(folderData.getPath(),
+                                    new FileChangeData(changeType,
+                                            folderData.getSize()));
+                            LOG.trace(
+                                    "File created. Waiting for completion ({})",
+                                    () -> folderData.getPath()
+                                            .toAbsolutePath());
+                        }
+                        break;
+                    case MODIFY:
+                        filesModifiedMap.putIfAbsent(folderData.getPath(),
+                                new FileChangeData(changeType,
+                                        folderData.getSize()));
+                        break;
                     }
-    
-                    changeListener.processChange(folderData);
+
                 } catch (InterruptedException e) {
                     LOG.error("Interrupted watcher", e);
                 }
             }
         }
-        
+    }
+
+    /**
+     * Checking each file from map and if it is ready, then propagade change
+     */
+    private class FileWaitThread implements Runnable {
+
+        @Override
+        public void run() {
+            if (!filesModifiedMap.isEmpty()) {
+                LOG.trace("Checking files");
+                List<LocalFolderData> filesToProcess = filesModifiedMap
+                        .entrySet().stream().filter(this::fileIsReady)
+                        .map(entry -> new LocalFolderData(entry.getKey(),
+                                entry.getValue().getChangeType()))
+                        .collect(Collectors.toList());
+
+                if (!filesToProcess.isEmpty()) {
+                    filesToProcess.stream().map(fd -> fd.getPath())
+                            .forEach(filesModifiedMap::remove);
+                    LOG.trace("Notifying about {} files created/modified",
+                            () -> filesToProcess.size());
+                    filesToProcess.forEach(changeListener::processChange);
+                }
+            }
+        }
+
+        /**
+         * Determining if file creation/modification is completed by comparing
+         * current size of file with the recorded one that is stored in
+         * FileChangeData.
+         * 
+         * @param entry
+         *            entry with path and file change data
+         * @return true if file change can be processed by changeListener
+         */
+        private boolean fileIsReady(Entry<Path, FileChangeData> entry) {
+            File file = entry.getKey().toFile();
+
+            long currentSize = file.length();
+            long prevSize = entry.getValue().getSize();
+
+            if (currentSize == prevSize) {
+                if (entry.getValue().isFirstEqualCheckDone()) {
+                    LOG.trace("File is ready. ({})",
+                            () -> file.getAbsolutePath());
+                    return true;
+                } else {
+                    LOG.trace("File is not ready. Size equals ({})",
+                            () -> file.getAbsolutePath());
+                    entry.getValue().setFirstEqualCheckDone(true);
+                    return false;
+                }
+            } else {
+                LOG.trace("File is not ready yet. Size differs ({})",
+                        () -> file.getAbsolutePath());
+                entry.getValue().setSize(currentSize);
+                return false;
+            }
+        }
+
+    }
+
+    /**
+     * Holds internal information about the created/modified file. It is needed
+     * to identify when file creation/modification is completed. The file size
+     * that was previously recorded is compared to the current one. When size
+     * becomes equal the flag is set, so we'll wait some more time to finally
+     * trigger the change.
+     */
+    private class FileChangeData {
+        private final LocalFolderChangeType changeType;
+        private Long size;
+
+        private boolean firstEqualCheckDone = false;
+
+        public FileChangeData(LocalFolderChangeType changeType, Long size) {
+            this.changeType = changeType;
+            this.size = size;
+        }
+
+        public Long getSize() {
+            return size;
+        }
+
+        public void setSize(Long size) {
+            this.size = size;
+        }
+
+        public LocalFolderChangeType getChangeType() {
+            return changeType;
+        }
+
+        public boolean isFirstEqualCheckDone() {
+            return firstEqualCheckDone;
+        }
+
+        public void setFirstEqualCheckDone(boolean firstEqualCheckDone) {
+            this.firstEqualCheckDone = firstEqualCheckDone;
+        }
     }
 
 }
