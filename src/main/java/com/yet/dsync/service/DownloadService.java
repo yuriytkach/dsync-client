@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Comparator;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
@@ -28,99 +27,92 @@ import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.exception.DSyncClientException;
 
-public class DownloadService extends AbstractChangeProcessingService<DropboxFileData>{
-    
-    private static final Logger LOG = LogManager.getLogger(DownloadService.class);
-    
+public class DownloadService
+        extends AbstractChangeProcessingService<DropboxFileData> {
+
+    private static final Logger LOG = LogManager
+            .getLogger(DownloadService.class);
+
     private final MetadataDao metadaDao;
     private final LocalFolderService localFolderService;
     private final DropboxService dropboxService;
-    
-    public DownloadService(MetadataDao metadaDao, LocalFolderService localFolderService, DropboxService dropboxService) {
-        super("download", new FileDataSizeComparator());
-        
+
+    public DownloadService(MetadataDao metadaDao,
+            LocalFolderService localFolderService,
+            DropboxService dropboxService) {
+        super("download");
+
         this.metadaDao = metadaDao;
         this.localFolderService = localFolderService;
         this.dropboxService = dropboxService;
     }
-    
-    
+
     private void downloadData(DropboxFileData fileData) {
         if (fileData.isDirectory()) {
             createDirectory(fileData);
         } else {
             File file = resolveFile(fileData);
-            
-            if ( file.getParentFile().exists() ) {
+
+            if (file.getParentFile().exists()) {
                 try (FileOutputStream fos = new FileOutputStream(file)) {
                     dropboxService.downloadFile(fileData.getPathDisplay(), fos);
                     metadaDao.writeLoadedFlag(fileData.getId(), true);
                 } catch (IOException e) {
                     throw new DSyncClientException(e);
                 }
-                LOG.info("Downloaded {}", ()-> fileData.getPathDisplay());
+                LOG.info("Downloaded {}", () -> fileData.getPathDisplay());
             } else {
-                LOG.warn("Skipped {}", ()-> fileData.getPathDisplay());
+                LOG.warn("Skipped {}", () -> fileData.getPathDisplay());
             }
         }
     }
 
     private File resolveFile(DropboxFileData fileData) {
-        final String fileDir = FilenameUtils.getFullPathNoEndSeparator(fileData.getPathDisplay());
-        final String fileName = FilenameUtils.getName(fileData.getPathDisplay());
-        
+        final String fileDir = FilenameUtils
+                .getFullPathNoEndSeparator(fileData.getPathDisplay());
+        final String fileName = FilenameUtils
+                .getName(fileData.getPathDisplay());
+
         File dir = localFolderService.buildFileObject(fileDir);
-        
+
         final String fullFilePath;
         if (dir.exists()) {
             fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
         } else {
-            DropboxFileData dirData = metadaDao.readByLowerPath(fileDir.toLowerCase());
+            DropboxFileData dirData = metadaDao
+                    .readByLowerPath(fileDir.toLowerCase());
             if (dirData != null) {
-                String fileDisplayPath = dirData.getPathDisplay() + File.separator + fileName;
-                
+                String fileDisplayPath = dirData.getPathDisplay()
+                        + File.separator + fileName;
+
                 DropboxFileData.Builder newFileDataBuilder = new DropboxFileData.Builder();
                 newFileDataBuilder.init(fileData).pathDisplay(fileDisplayPath);
                 DropboxFileData newFileData = newFileDataBuilder.build();
                 metadaDao.write(newFileData);
-                
-                fullFilePath = localFolderService.buildFileObject(fileDisplayPath).getAbsolutePath();
+
+                fullFilePath = localFolderService
+                        .buildFileObject(fileDisplayPath).getAbsolutePath();
             } else {
-                fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
+                fullFilePath = dir.getAbsolutePath() + File.separator
+                        + fileName;
             }
         }
-        
+
         return new File(fullFilePath);
     }
 
     private void createDirectory(DropboxFileData fileData) {
         localFolderService.createFolder(fileData.getPathDisplay());
         metadaDao.writeLoadedFlag(fileData.getId(), true);
-        
-        LOG.info("Created directory {}", ()-> fileData.getPathDisplay());
+
+        LOG.info("Created directory {}", () -> fileData.getPathDisplay());
     }
-    
+
     public void downloadAllNotLoaded() {
         Collection<DropboxFileData> allNotLoaded = metadaDao.readAllNotLoaded();
-        LOG.debug("Downloading {} objects that are not loaded..", ()-> allNotLoaded.size());
+        LOG.debug("Downloading {} objects that are not loaded..",
+                () -> allNotLoaded.size());
         allNotLoaded.forEach(this::scheduleProcessing);
-    }
-    
-    private static class FileDataSizeComparator implements Comparator<DropboxFileData> {
-
-        @Override
-        public int compare(DropboxFileData a, DropboxFileData b) {
-            if (a.getRev() == null && b.getRev() != null) {
-                return -1;
-            } else if (a.getRev() != null && b.getRev() == null) {
-                return 1;
-            } else if (a.getRev() != null && b.getRev() != null) {
-                return a.getSize().intValue() - b.getSize().intValue();
-            } else {
-                return a.getPathDisplay().compareTo(b.getPathDisplay());
-            }
-        }
-        
     }
 
     @Override
@@ -133,10 +125,14 @@ public class DownloadService extends AbstractChangeProcessingService<DropboxFile
         return changeData.isFile();
     }
 
-
     @Override
     protected long getFileSize(DropboxFileData changeData) {
         return changeData.getSize();
+    }
+
+    @Override
+    protected boolean isDeleteData(DropboxFileData changeData) {
+        return !changeData.isFile() && !changeData.isDirectory();
     }
 
 }

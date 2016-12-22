@@ -28,60 +28,89 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yet.dsync.exception.DSyncClientException;
 
 public abstract class AbstractChangeProcessingService<T> {
-    
-    private static final Logger LOG = LogManager.getLogger(AbstractChangeProcessingService.class);
-    
+
+    private static final Logger LOG = LogManager
+            .getLogger(AbstractChangeProcessingService.class);
+
     private static final int QUICK_THREAD_NUMBER = 5;
     private static final int SLOW_THREAD_NUMBER = 2;
-    
-    private static final long SLOW_THRESHOLD = 256*1024; //256KB
-    
+
+    private static final long SLOW_THRESHOLD = 256 * 1024; // 256KB
+
+    private final Comparator<? super T> changeComparator = (a, b) -> {
+        if (!isFile(a) && isFile(b)) {
+            return -1;
+        } else if (isFile(a) && !isFile(b)) {
+            return 1;
+        } else if (isFile(a) && isFile(b)) {
+            return Long.compare(getFileSize(a), getFileSize(b));
+        } else if (isDeleteData(a) && !isDeleteData(b)) {
+            return -1;
+        } else if (!isDeleteData(a) && isDeleteData(b)) {
+            return 1;
+        } else {
+            return 0;
+        }
+    };
+
     private final BlockingQueue<T> quickProcessingQueue;
     private final BlockingQueue<T> slowProcessingQueue;
-    
+
     private final ExecutorService executorService;
 
-    public AbstractChangeProcessingService(
-            String processingThreadName, 
-            Comparator<? super T> changeComparator) {
+    public AbstractChangeProcessingService(String processingThreadName) {
         this.slowProcessingQueue = createDownloadQueue(changeComparator);
         this.quickProcessingQueue = createDownloadQueue(changeComparator);
-        
+
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(processingThreadName + "-%d").build();
-        
-        this.executorService = Executors.newFixedThreadPool(SLOW_THREAD_NUMBER + QUICK_THREAD_NUMBER,
-                namedThreadFactory);
-        
+
+        this.executorService = Executors.newFixedThreadPool(
+                SLOW_THREAD_NUMBER + QUICK_THREAD_NUMBER, namedThreadFactory);
+
         initDownloadThreads();
     }
-    
+
     /**
-     * Creating PriorityBlockingQueue.
-     * Note! It is unbounded, so in the future we might need to enhance it to make it bounded,
-     * so the caller will block before putting next elem them. Also, we can think of different
-     * download threads, some of which will handle only directories and small files, another
-     * will handle only big files.
-     * For now, we make priority in the following way: folders, small files, big files;
+     * Creating PriorityBlockingQueue. Note! It is unbounded, so in the future
+     * we might need to enhance it to make it bounded, so the caller will block
+     * before putting next elem them. Also, we can think of different download
+     * threads, some of which will handle only directories and small files,
+     * another will handle only big files. For now, we make priority in the
+     * following way: folders, small files, big files;
      */
-    private BlockingQueue<T> createDownloadQueue(Comparator<? super T> changeComparator) {
+    private BlockingQueue<T> createDownloadQueue(
+            Comparator<? super T> changeComparator) {
         return new PriorityBlockingQueue<T>(100, changeComparator);
     }
-    
+
     private void initDownloadThreads() {
-        for (int i=0; i < QUICK_THREAD_NUMBER; i++) {
-            executorService.submit(new DownloadThread(quickProcessingQueue));
+        for (int i = 0; i < QUICK_THREAD_NUMBER; i++) {
+            executorService.submit(new ProcessingThread(quickProcessingQueue));
         }
-        
-        for (int i=0; i < SLOW_THREAD_NUMBER; i++) {
-            executorService.submit(new DownloadThread(slowProcessingQueue));
+
+        for (int i = 0; i < SLOW_THREAD_NUMBER; i++) {
+            executorService.submit(new ProcessingThread(slowProcessingQueue));
         }
     }
-    
+
     protected abstract void processChange(T changeData);
+
     protected abstract boolean isFile(T changeData);
+
+    protected abstract boolean isDeleteData(T changeData);
+
     protected abstract long getFileSize(T changeData);
-    
+
+    /**
+     * If the changeData is file, then scheduling it either in quick or slow
+     * processing queue based on size.
+     * 
+     * Otherwise, scheduling it to quick processing queue.
+     * 
+     * @param changeData
+     *            Change data object that needs to be scheduled for processing
+     */
     public void scheduleProcessing(T changeData) {
         try {
             if (isFile(changeData)) {
@@ -99,11 +128,15 @@ public abstract class AbstractChangeProcessingService<T> {
         }
     }
 
-    private class DownloadThread implements Runnable {
+    /**
+     * Processing thread that will take change data from the queue and call the
+     * {@link #processChange(Object)} method
+     */
+    private class ProcessingThread implements Runnable {
 
         private BlockingQueue<T> queue;
-        
-        public DownloadThread(BlockingQueue<T> queue) {
+
+        public ProcessingThread(BlockingQueue<T> queue) {
             this.queue = queue;
         }
 
@@ -119,7 +152,6 @@ public abstract class AbstractChangeProcessingService<T> {
                 }
             }
         }
-        
     }
 
 }
