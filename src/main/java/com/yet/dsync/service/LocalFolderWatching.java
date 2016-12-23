@@ -43,11 +43,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.LocalFolderChangeType;
 import com.yet.dsync.dto.LocalFolderData;
 import com.yet.dsync.exception.DSyncClientException;
-import com.yet.dsync.util.Config;
 import com.yet.dsync.util.WatcherRegisterConsumer;
 
 public class LocalFolderWatching implements Runnable {
@@ -61,7 +59,7 @@ public class LocalFolderWatching implements Runnable {
     private static final Logger LOG = LogManager
             .getLogger(LocalFolderWatching.class);
 
-    private final ConfigDao configDao;
+    private final String localDir;
     private final LocalFolderChange changeListener;
 
     private final WatchService watchService;
@@ -73,9 +71,9 @@ public class LocalFolderWatching implements Runnable {
 
     private ConcurrentMap<Path, FileChangeData> filesModifiedMap = new ConcurrentHashMap<>();
 
-    public LocalFolderWatching(ConfigDao configDao,
-            LocalFolderChange changeListener) {
-        this.configDao = configDao;
+    public LocalFolderWatching(final String localDir,
+            final LocalFolderChange changeListener) {
+        this.localDir = localDir;
         this.changeListener = changeListener;
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
@@ -113,13 +111,11 @@ public class LocalFolderWatching implements Runnable {
         Thread.currentThread().setName("local-poll");
         LOG.info("Started local folder watching");
 
-        String localDirPath = configDao.read(Config.LOCAL_DIR);
-
-        Path localDir = Paths.get(localDirPath);
+        Path localDirPath = Paths.get(localDir);
 
         try {
 
-            watcherConsumer.accept(localDir);
+            watcherConsumer.accept(localDirPath);
 
             while (!Thread.interrupted()) {
                 final WatchKey key;

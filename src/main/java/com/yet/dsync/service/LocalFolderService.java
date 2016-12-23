@@ -125,7 +125,7 @@ public class LocalFolderService {
     }
     
     public Runnable createFolderWatchingThread(LocalFolderChange changeListener) {
-        return new LocalFolderWatching(configDao, changeListener);
+        return new LocalFolderWatching(localDir.getAbsolutePath(), changeListener);
     }
 
 }
