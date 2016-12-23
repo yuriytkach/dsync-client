@@ -50,7 +50,7 @@ public class DownloadService
     }
 
     private void downloadData(final DropboxFileData fileData) {
-        globalOperationsTracker.startTracking(fileData.getPathLower());
+        globalOperationsTracker.start(fileData.getPathLower());
         try {
             if (DropboxChangeType.DELETE == fileData.getChangeType()) {
                 deleteFileOrDirectory(fileData);
@@ -72,7 +72,7 @@ public class DownloadService
                 }
             }
         } finally {
-            globalOperationsTracker.stopTracking(fileData.getPathLower());
+            globalOperationsTracker.stop(fileData.getPathLower());
         }
     }
 

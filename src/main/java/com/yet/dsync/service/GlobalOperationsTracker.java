@@ -27,11 +27,12 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
- * This class can track operations that are being processed either by Download or Upload services.
- * Its main functions are to track the start of the operation. And then when stop is called, to remove
- * the operation from track after some time. 
- * This class will allow to skip the recursive operation processing, when file that is downloaded from Dropbox
- * being picked up by the local folder watching service, and vice versa. 
+ * This class can track operations that are being processed either by Download
+ * or Upload services. Its main functions are to track the start of the
+ * operation. And then when stop is called, to remove the operation from track
+ * after some time. This class will allow to skip the recursive operation
+ * processing, when file that is downloaded from Dropbox being picked up by the
+ * local folder watching service, and vice versa.
  */
 public class GlobalOperationsTracker {
 
@@ -39,39 +40,41 @@ public class GlobalOperationsTracker {
 
     private static final int SCHEDULED_POOL_SIZE = 5;
 
-    private static final Logger LOG = LogManager.getLogger(GlobalOperationsTracker.class);
-    
+    private static final Logger LOG = LogManager
+            .getLogger(GlobalOperationsTracker.class);
+
     private final ConcurrentMap<String, Boolean> trackMap = new ConcurrentHashMap<>();
-    
+
     private final ScheduledExecutorService scheduledExecutorService;
-    
+
     public GlobalOperationsTracker() {
         ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat("global-tracker-%d").build();
-        
-        scheduledExecutorService = Executors.newScheduledThreadPool(SCHEDULED_POOL_SIZE, namedThreadFactory);
+
+        scheduledExecutorService = Executors.newScheduledThreadPool(
+                SCHEDULED_POOL_SIZE, namedThreadFactory);
     }
 
-    public void startTracking(String pathLower) {
+    public void start(String pathLower) {
         trackMap.putIfAbsent(pathLower, Boolean.TRUE);
         LOG.trace("Added path to global tracking: {}", () -> pathLower);
     }
-    
-    public void stopTracking(String pathLower) {
+
+    public void stop(String pathLower) {
         trackMap.put(pathLower, false);
-        LOG.trace("Scheduled tracking stop for path: {}", () -> pathLower);    
+        LOG.trace("Scheduled tracking stop for path: {}", () -> pathLower);
         scheduledExecutorService.schedule(new RemoveTrackingThread(pathLower),
                 WAIT_TIME_BEFORE_TRACK_REMOVE_SEC, TimeUnit.SECONDS);
     }
-    
+
     public boolean isTracked(String pathLower) {
         return trackMap.getOrDefault(pathLower, Boolean.FALSE);
     }
-    
+
     private class RemoveTrackingThread implements Runnable {
-        
+
         private String pathLower;
-        
+
         public RemoveTrackingThread(String pathLower) {
             this.pathLower = pathLower;
         }
@@ -79,8 +82,9 @@ public class GlobalOperationsTracker {
         @Override
         public void run() {
             trackMap.remove(pathLower);
-            LOG.trace("Competely removed path from global tracking: {}", ()->pathLower);
+            LOG.trace("Competely removed path from global tracking: {}",
+                    () -> pathLower);
         }
-        
+
     }
 }

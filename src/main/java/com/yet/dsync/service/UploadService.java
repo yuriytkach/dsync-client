@@ -54,7 +54,7 @@ public class UploadService
     private void uploadData(LocalFolderData changeData) {
         String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath().toFile());
         
-        globalOperationsTracker.startTracking(dropboxPath.toLowerCase());
+        globalOperationsTracker.start(dropboxPath.toLowerCase());
         try {
             if (! changeData.fileExists() ) {
                 deleteData(dropboxPath);
@@ -66,7 +66,7 @@ public class UploadService
                 uploadFile(dropboxPath, changeData);
             }
         } finally {
-            globalOperationsTracker.stopTracking(dropboxPath.toLowerCase());
+            globalOperationsTracker.stop(dropboxPath.toLowerCase());
         }
     }
 
