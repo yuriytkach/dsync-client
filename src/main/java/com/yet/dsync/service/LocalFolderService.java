@@ -18,6 +18,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Path;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -118,8 +119,8 @@ public class LocalFolderService {
         return new File(localDir.getAbsolutePath() + path);
     }
     
-    public String extractDropboxPath(File file) {
-        String fullFilePath = file.getAbsolutePath();
+    public String extractDropboxPath(Path path) {
+        String fullFilePath = path.toAbsolutePath().toString();
         String fullLocalDirPath = localDir.getAbsolutePath();
         return fullFilePath.substring(fullLocalDirPath.length()).trim();
     }

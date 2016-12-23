@@ -52,7 +52,7 @@ public class UploadService
     }
 
     private void uploadData(LocalFolderData changeData) {
-        String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath().toFile());
+        String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath());
         
         globalOperationsTracker.start(dropboxPath.toLowerCase());
         try {
@@ -107,7 +107,7 @@ public class UploadService
 
     @Override
     protected String extractPathLower(LocalFolderData changeData) {
-        String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath().toFile());
+        String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath());
         return dropboxPath.toLowerCase();
     }
 
