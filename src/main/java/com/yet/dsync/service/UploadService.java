@@ -65,6 +65,7 @@ public class UploadService
             } else {
                 uploadFile(dropboxPath, changeData);
             }
+            LOG.info("Uploaded {}", () -> dropboxPath);
         } finally {
             globalOperationsTracker.stop(dropboxPath.toLowerCase());
         }
