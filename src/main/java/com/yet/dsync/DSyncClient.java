@@ -36,6 +36,7 @@ import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.UserData;
 import com.yet.dsync.service.DownloadService;
 import com.yet.dsync.service.DropboxService;
+import com.yet.dsync.service.GlobalOperationsTracker;
 import com.yet.dsync.service.LocalFolderService;
 import com.yet.dsync.service.UploadService;
 import com.yet.dsync.util.Config;
@@ -83,6 +84,8 @@ public class DSyncClient {
     
     private DownloadService downloadService;
     private UploadService uploadService;
+    
+    private GlobalOperationsTracker globalOperationsTracker;
     
     private ConfigDao configDao;
     private MetadataDao metadataDao;
@@ -152,9 +155,11 @@ public class DSyncClient {
         localFolderService = new LocalFolderService(configDao);
         dropboxService = new DropboxService(configDao);
         
-        downloadService = new DownloadService(metadataDao, localFolderService, dropboxService);
-        uploadService = new UploadService(metadataDao, localFolderService, dropboxService);
-    }
+        globalOperationsTracker = new GlobalOperationsTracker();
+        
+        downloadService = new DownloadService(globalOperationsTracker, metadataDao, localFolderService, dropboxService);
+        uploadService = new UploadService(globalOperationsTracker, metadataDao, localFolderService, dropboxService);
+    }        
 
     private void startServices() {
         dropboxService.createConfig();

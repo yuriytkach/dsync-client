@@ -35,10 +35,12 @@ public class UploadService
     private final LocalFolderService localFolderService;
     private final DropboxService dropboxService;
 
-    public UploadService(MetadataDao metadataDao,
+    public UploadService(
+            GlobalOperationsTracker globalOperationsTracker,
+            MetadataDao metadataDao,
             LocalFolderService localFolderService,
             DropboxService dropboxService) {
-        super("upload");
+        super("upload", globalOperationsTracker);
         this.metadaDao = metadataDao;
         this.localFolderService = localFolderService;
         this.dropboxService = dropboxService;
@@ -52,14 +54,19 @@ public class UploadService
     private void uploadData(LocalFolderData changeData) {
         String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath().toFile());
         
-        if (! changeData.fileExists() ) {
-            deleteData(dropboxPath);
-            
-        } else if (changeData.isDirectory()) {
-            createDirectory(dropboxPath);
-            
-        } else {
-            uploadFile(dropboxPath, changeData);
+        globalOperationsTracker.startTracking(dropboxPath.toLowerCase());
+        try {
+            if (! changeData.fileExists() ) {
+                deleteData(dropboxPath);
+                
+            } else if (changeData.isDirectory()) {
+                createDirectory(dropboxPath);
+                
+            } else {
+                uploadFile(dropboxPath, changeData);
+            }
+        } finally {
+            globalOperationsTracker.stopTracking(dropboxPath.toLowerCase());
         }
     }
 
@@ -96,6 +103,12 @@ public class UploadService
     @Override
     protected boolean isDeleteData(LocalFolderData changeData) {
         return !changeData.fileExists();
+    }
+
+    @Override
+    protected String extractPathLower(LocalFolderData changeData) {
+        String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath().toFile());
+        return dropboxPath.toLowerCase();
     }
 
 }

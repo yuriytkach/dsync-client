@@ -58,7 +58,11 @@ public abstract class AbstractChangeProcessingService<T> {
 
     private final ExecutorService executorService;
 
-    public AbstractChangeProcessingService(String processingThreadName) {
+    protected GlobalOperationsTracker globalOperationsTracker;
+
+    public AbstractChangeProcessingService(String processingThreadName, GlobalOperationsTracker globalOperationsTracker) {
+        this.globalOperationsTracker = globalOperationsTracker;
+        
         this.slowProcessingQueue = createDownloadQueue(changeComparator);
         this.quickProcessingQueue = createDownloadQueue(changeComparator);
 
@@ -101,6 +105,8 @@ public abstract class AbstractChangeProcessingService<T> {
     protected abstract boolean isDeleteData(T changeData);
 
     protected abstract long getFileSize(T changeData);
+    
+    protected abstract String extractPathLower(T changeData);
 
     /**
      * If the changeData is file, then scheduling it either in quick or slow
@@ -112,19 +118,25 @@ public abstract class AbstractChangeProcessingService<T> {
      *            Change data object that needs to be scheduled for processing
      */
     public void scheduleProcessing(T changeData) {
-        try {
-            if (isFile(changeData)) {
-                long size = getFileSize(changeData);
-                if (size > SLOW_THRESHOLD) {
-                    slowProcessingQueue.put(changeData);
+        String pathLower = extractPathLower(changeData);
+        
+        if (globalOperationsTracker.isTracked(pathLower)) {
+            LOG.debug("Path is already tracked. Skip: {}", ()->pathLower);
+        } else {
+            try {
+                if (isFile(changeData)) {
+                    long size = getFileSize(changeData);
+                    if (size > SLOW_THRESHOLD) {
+                        slowProcessingQueue.put(changeData);
+                    } else {
+                        quickProcessingQueue.put(changeData);
+                    }
                 } else {
                     quickProcessingQueue.put(changeData);
                 }
-            } else {
-                quickProcessingQueue.put(changeData);
+            } catch (Exception e) {
+                throw new DSyncClientException(e);
             }
-        } catch (Exception e) {
-            throw new DSyncClientException(e);
         }
     }
 

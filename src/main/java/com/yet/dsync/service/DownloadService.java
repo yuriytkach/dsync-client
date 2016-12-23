@@ -38,35 +38,41 @@ public class DownloadService
     private final LocalFolderService localFolderService;
     private final DropboxService dropboxService;
 
-    public DownloadService(MetadataDao metadaDao,
+    public DownloadService(GlobalOperationsTracker globalOperationsTracker,
+            MetadataDao metadaDao,
             LocalFolderService localFolderService,
             DropboxService dropboxService) {
-        super("download");
+        super("download", globalOperationsTracker);
 
         this.metadataDao = metadaDao;
         this.localFolderService = localFolderService;
         this.dropboxService = dropboxService;
     }
 
-    private void downloadData(DropboxFileData fileData) {
-        if (DropboxChangeType.DELETE == fileData.getChangeType()) {
-            deleteFileOrDirectory(fileData);
-        } else if (fileData.isDirectory()) {
-            createDirectory(fileData);
-        } else {
-            File file = resolveFile(fileData);
-
-            if (file.getParentFile().exists()) {
-                try (FileOutputStream fos = new FileOutputStream(file)) {
-                    dropboxService.downloadFile(fileData.getPathDisplay(), fos);
-                    metadataDao.writeLoadedFlag(fileData.getId(), true);
-                } catch (IOException e) {
-                    throw new DSyncClientException(e);
-                }
-                LOG.info("Downloaded {}", () -> fileData.getPathDisplay());
+    private void downloadData(final DropboxFileData fileData) {
+        globalOperationsTracker.startTracking(fileData.getPathLower());
+        try {
+            if (DropboxChangeType.DELETE == fileData.getChangeType()) {
+                deleteFileOrDirectory(fileData);
+            } else if (fileData.isDirectory()) {
+                createDirectory(fileData);
             } else {
-                LOG.warn("Skipped {}", () -> fileData.getPathDisplay());
+                File file = resolveFile(fileData);
+    
+                if (file.getParentFile().exists()) {
+                    try (FileOutputStream fos = new FileOutputStream(file)) {
+                        dropboxService.downloadFile(fileData.getPathDisplay(), fos);
+                        metadataDao.writeLoadedFlag(fileData.getId(), true);
+                    } catch (IOException e) {
+                        throw new DSyncClientException(e);
+                    }
+                    LOG.info("Downloaded {}", () -> fileData.getPathDisplay());
+                } else {
+                    LOG.warn("Skipped {}", () -> fileData.getPathDisplay());
+                }
             }
+        } finally {
+            globalOperationsTracker.stopTracking(fileData.getPathLower());
         }
     }
 
@@ -142,6 +148,11 @@ public class DownloadService
     @Override
     protected boolean isDeleteData(DropboxFileData changeData) {
         return !changeData.isFile() && !changeData.isDirectory();
+    }
+
+    @Override
+    protected String extractPathLower(DropboxFileData changeData) {
+        return changeData.getPathLower();
     }
 
 }
