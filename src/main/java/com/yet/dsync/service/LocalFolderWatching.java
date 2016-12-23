@@ -46,6 +46,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yet.dsync.dto.LocalFolderChangeType;
 import com.yet.dsync.dto.LocalFolderData;
 import com.yet.dsync.exception.DSyncClientException;
+import com.yet.dsync.util.PathUtil;
 import com.yet.dsync.util.WatcherRegisterConsumer;
 
 public class LocalFolderWatching implements Runnable {
@@ -71,10 +72,15 @@ public class LocalFolderWatching implements Runnable {
 
     private ConcurrentMap<Path, FileChangeData> filesModifiedMap = new ConcurrentHashMap<>();
 
+    private GlobalOperationsTracker globalOperationsTracker;
+
     public LocalFolderWatching(final String localDir,
-            final LocalFolderChange changeListener) {
+            final LocalFolderChange changeListener,
+            final GlobalOperationsTracker globalOperationsTracker) {
         this.localDir = localDir;
         this.changeListener = changeListener;
+        this.globalOperationsTracker = globalOperationsTracker;
+        
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
@@ -142,20 +148,24 @@ public class LocalFolderWatching implements Runnable {
                             Kind<Path> watchEventKind = event.kind();
 
                             Path path = dir.resolve(event.context());
-
-                            LocalFolderChangeType changeType = LocalFolderChangeType
-                                    .fromWatchEventKind(watchEventKind);
-
-                            LocalFolderData localPathChange = new LocalFolderData(
-                                    path, changeType);
-
-                            // LOG.trace("Local event {} on path {}",
-                            // changeType, path);
-
-                            try {
-                                localPatheChanges.put(localPathChange);
-                            } catch (Exception e1) {
-                                LOG.error("Interrupted", e1);
+                            
+                            String dropboxPathLower = PathUtil.extractDropboxPath(localDir, path).toLowerCase();
+                            if (globalOperationsTracker.isTracked(dropboxPathLower)) {
+                                LOG.trace("Path already tracked. Skipping: {}", () -> path);
+                            } else {
+                                LocalFolderChangeType changeType = LocalFolderChangeType
+                                        .fromWatchEventKind(watchEventKind);
+    
+                                LocalFolderData localPathChange = new LocalFolderData(
+                                        path, changeType);
+    
+                                LOG.trace("Local event {} on path {}", changeType, path);
+    
+                                try {
+                                    localPatheChanges.put(localPathChange);
+                                } catch (Exception e1) {
+                                    LOG.error("Interrupted", e1);
+                                }
                             }
                         });
 

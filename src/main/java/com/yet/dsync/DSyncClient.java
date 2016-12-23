@@ -152,10 +152,10 @@ public class DSyncClient {
     }
     
     private void initServices() {
-        localFolderService = new LocalFolderService(configDao);
-        dropboxService = new DropboxService(configDao);
-        
         globalOperationsTracker = new GlobalOperationsTracker();
+        
+        localFolderService = new LocalFolderService(configDao, globalOperationsTracker);
+        dropboxService = new DropboxService(configDao);
         
         downloadService = new DownloadService(globalOperationsTracker, metadataDao, localFolderService, dropboxService);
         uploadService = new UploadService(globalOperationsTracker, metadataDao, localFolderService, dropboxService);

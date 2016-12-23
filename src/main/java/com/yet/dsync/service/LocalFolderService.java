@@ -28,17 +28,20 @@ import org.apache.logging.log4j.Logger;
 import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
+import com.yet.dsync.util.PathUtil;
 
 public class LocalFolderService {
     
     private static final Logger LOG = LogManager.getLogger(LocalFolderService.class);
 
     private final ConfigDao configDao;
+    private final GlobalOperationsTracker globalOperationsTracker;
     
     private File localDir;
-    
-    public LocalFolderService(ConfigDao configDao) {
+
+    public LocalFolderService(ConfigDao configDao, GlobalOperationsTracker globalOperationsTracker) {
         this.configDao = configDao;
+        this.globalOperationsTracker = globalOperationsTracker;
     }
 
     public void setupLocalFolder() {
@@ -120,13 +123,11 @@ public class LocalFolderService {
     }
     
     public String extractDropboxPath(Path path) {
-        String fullFilePath = path.toAbsolutePath().toString();
-        String fullLocalDirPath = localDir.getAbsolutePath();
-        return fullFilePath.substring(fullLocalDirPath.length()).trim();
+        return PathUtil.extractDropboxPath(localDir, path);
     }
     
     public Runnable createFolderWatchingThread(LocalFolderChange changeListener) {
-        return new LocalFolderWatching(localDir.getAbsolutePath(), changeListener);
+        return new LocalFolderWatching(localDir.getAbsolutePath(), changeListener, globalOperationsTracker);
     }
 
 }
