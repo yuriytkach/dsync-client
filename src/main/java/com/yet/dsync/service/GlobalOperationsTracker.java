@@ -61,14 +61,14 @@ public class GlobalOperationsTracker {
     }
 
     public void stop(String pathLower) {
-        trackMap.put(pathLower, false);
+        trackMap.put(pathLower, Boolean.FALSE);
         LOG.trace("Scheduled tracking stop for path: {}", () -> pathLower);
         scheduledExecutorService.schedule(new RemoveTrackingThread(pathLower),
                 WAIT_TIME_BEFORE_TRACK_REMOVE_SEC, TimeUnit.SECONDS);
     }
 
     public boolean isTracked(String pathLower) {
-        return trackMap.getOrDefault(pathLower, Boolean.FALSE);
+        return trackMap.containsKey(pathLower);
     }
 
     private class RemoveTrackingThread implements Runnable {

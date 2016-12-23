@@ -121,7 +121,7 @@ public class LocalFolderService {
     public String extractDropboxPath(File file) {
         String fullFilePath = file.getAbsolutePath();
         String fullLocalDirPath = localDir.getAbsolutePath();
-        return fullFilePath.substring(fullLocalDirPath.length());
+        return fullFilePath.substring(fullLocalDirPath.length()).trim();
     }
     
     public Runnable createFolderWatchingThread(LocalFolderChange changeListener) {
