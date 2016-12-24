@@ -17,13 +17,17 @@ package com.yet.dsync.service;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchEvent.Kind;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -247,6 +251,28 @@ public class LocalFolderWatching implements Runnable {
                 throws IOException {
             watcherConsumer.accept(folderData.getPath());
             changeListener.processChange(folderData);
+
+            Files.walkFileTree(folderData.getPath(),
+                new SimpleFileVisitor<Path>() {
+
+                    @Override
+                    public FileVisitResult visitFile(Path file,
+                            BasicFileAttributes attrs) throws IOException {
+                        processWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path dir,
+                            BasicFileAttributes attrs) throws IOException {
+                        if (dir.equals(folderData.getPath())) {
+                            return FileVisitResult.CONTINUE;
+                        } else {
+                            processWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, dir);
+                            return FileVisitResult.SKIP_SUBTREE;
+                        }
+                    }
+                });
         }
 
         private void processFileCreateChange(LocalFolderData folderData,
