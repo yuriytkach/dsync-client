@@ -80,7 +80,7 @@ public class LocalFolderWatching implements Runnable {
         this.localDir = localDir;
         this.changeListener = changeListener;
         this.globalOperationsTracker = globalOperationsTracker;
-        
+
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
         } catch (IOException e) {
@@ -148,19 +148,24 @@ public class LocalFolderWatching implements Runnable {
                             Kind<Path> watchEventKind = event.kind();
 
                             Path path = dir.resolve(event.context());
-                            
-                            String dropboxPathLower = PathUtil.extractDropboxPath(localDir, path).toLowerCase();
-                            if (globalOperationsTracker.isTracked(dropboxPathLower)) {
-                                LOG.trace("Path already tracked. Skipping: {}", () -> path);
+
+                            String dropboxPathLower = PathUtil
+                                    .extractDropboxPath(localDir, path)
+                                    .toLowerCase();
+                            if (globalOperationsTracker
+                                    .isTracked(dropboxPathLower)) {
+                                LOG.trace("Path already tracked. Skipping: {}",
+                                        () -> path);
                             } else {
                                 LocalFolderChangeType changeType = LocalFolderChangeType
                                         .fromWatchEventKind(watchEventKind);
-    
+
                                 LocalFolderData localPathChange = new LocalFolderData(
                                         path, changeType);
-    
-                                LOG.trace("Local event {} on path {}", changeType, path);
-    
+
+                                LOG.trace("Local event {} on path {}",
+                                        changeType, path);
+
                                 try {
                                     localPatheChanges.put(localPathChange);
                                 } catch (Exception e1) {
@@ -201,36 +206,57 @@ public class LocalFolderWatching implements Runnable {
 
                     switch (changeType) {
                     case DELETE:
-                        filesModifiedMap.remove(folderData.getPath());
-                        // Forwarding delete, as nothing to be done here
-                        changeListener.processChange(folderData);
+                        processDeleteChange(folderData);
                         break;
                     case CREATE:
-                        // If that's folder, then registering it for watching
-                        if (folderData.fileExists() && folderData.isDirectory()) {
-                            watcherConsumer.accept(folderData.getPath());
-                            changeListener.processChange(folderData);
-                        } else {
-                            filesModifiedMap.put(folderData.getPath(),
-                                    new FileChangeData(changeType,
-                                            folderData.getSize()));
-                            LOG.trace(
-                                    "File created. Waiting for completion ({})",
-                                    () -> folderData.getPath()
-                                            .toAbsolutePath());
-                        }
+                        processCreateChange(folderData, changeType);
                         break;
                     case MODIFY:
-                        filesModifiedMap.putIfAbsent(folderData.getPath(),
-                                new FileChangeData(changeType,
-                                        folderData.getSize()));
+                        processModifyChange(folderData, changeType);
                         break;
                     }
 
-                } catch (InterruptedException e) {
-                    LOG.error("Interrupted watcher", e);
+                } catch (InterruptedException | IOException e) {
+                    LOG.error("Failed in change wait", e);
                 }
             }
+        }
+
+        private void processModifyChange(LocalFolderData folderData,
+                LocalFolderChangeType changeType) {
+            filesModifiedMap.putIfAbsent(folderData.getPath(),
+                    new FileChangeData(changeType, folderData.getSize()));
+        }
+
+        private void processCreateChange(LocalFolderData folderData,
+                LocalFolderChangeType changeType) throws IOException {
+            // If that's folder, then registering it for watching
+            if (folderData.fileExists() && folderData.isDirectory()) {
+                processFolderCreateChange(folderData);
+            } else {
+                processFileCreateChange(folderData, changeType);
+            }
+        }
+
+        private void processFolderCreateChange(LocalFolderData folderData)
+                throws IOException {
+            watcherConsumer.accept(folderData.getPath());
+
+            changeListener.processChange(folderData);
+        }
+
+        private void processFileCreateChange(LocalFolderData folderData,
+                LocalFolderChangeType changeType) {
+            filesModifiedMap.put(folderData.getPath(),
+                    new FileChangeData(changeType, folderData.getSize()));
+            LOG.trace("File created. Waiting for completion ({})",
+                    () -> folderData.getPath().toAbsolutePath());
+        }
+
+        private void processDeleteChange(LocalFolderData folderData) {
+            filesModifiedMap.remove(folderData.getPath());
+            // Forwarding delete, as nothing to be done here
+            changeListener.processChange(folderData);
         }
     }
 
