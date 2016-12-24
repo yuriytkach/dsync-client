@@ -12,6 +12,19 @@
     
     <fileSets>
         <fileSet>
+            <directory>src/main/resources</directory>
+            <outputDirectory>config</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>README*</include>
+                <include>LICENSE*</include>
+                <include>NOTICE*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
             <directory>src/main/scripts</directory>
             <outputDirectory>scripts</outputDirectory>
         </fileSet>
@@ -20,6 +33,7 @@
     <dependencySets>
         <dependencySet>
             <outputDirectory>lib</outputDirectory>
+            <scope>runtime</scope>
         </dependencySet>
     </dependencySets>
 
