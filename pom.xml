@@ -160,6 +160,9 @@
 							<Version>${project.version}</Version>
 						</manifestEntries>
 					</archive>
+                    <excludes>
+                        <exclude>*.yaml</exclude>
+                    </excludes>
 				</configuration>
 			</plugin>
 
