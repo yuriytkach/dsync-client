@@ -14,9 +14,11 @@
 
 package com.yet.dsync.service;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Collection;
 
 import org.apache.commons.io.FilenameUtils;
@@ -60,7 +62,7 @@ public class DownloadService
                 File file = resolveFile(fileData);
     
                 if (file.getParentFile().exists()) {
-                    try (FileOutputStream fos = new FileOutputStream(file)) {
+                    try (OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
                         dropboxService.downloadFile(fileData.getPathDisplay(), fos);
                         metadataDao.writeLoadedFlag(fileData.getId(), true);
                     } catch (IOException e) {
