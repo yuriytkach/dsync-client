@@ -222,9 +222,9 @@ public class MetadataDao {
         }
     }
     
-    public void deleteByLowerPath(DropboxFileData fileData) {
+    public void deleteByLowerPath(String pathLower) {
         try {
-            deleteByPathStatement.setString(1, fileData.getPathLower());
+            deleteByPathStatement.setString(1, pathLower);
             
             deleteByPathStatement.executeUpdate();
         } catch (SQLException e) {

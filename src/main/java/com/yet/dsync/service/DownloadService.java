@@ -80,7 +80,7 @@ public class DownloadService
 
     private void deleteFileOrDirectory(DropboxFileData fd) {
         localFolderService.deleteFileOrFolder(fd.getPathDisplay());
-        metadataDao.deleteByLowerPath(fd);
+        metadataDao.deleteByLowerPath(fd.getPathLower());
         LOG.info("Removed {}", () -> fd.getPathDisplay());
     }
     

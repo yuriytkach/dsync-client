@@ -14,6 +14,7 @@
 
 package com.yet.dsync.service;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -23,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.yet.dsync.dao.MetadataDao;
+import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.dto.LocalFolderData;
 import com.yet.dsync.exception.DSyncClientException;
 
@@ -35,10 +37,8 @@ public class UploadService
     private final LocalFolderService localFolderService;
     private final DropboxService dropboxService;
 
-    public UploadService(
-            GlobalOperationsTracker globalOperationsTracker,
-            MetadataDao metadataDao,
-            LocalFolderService localFolderService,
+    public UploadService(GlobalOperationsTracker globalOperationsTracker,
+            MetadataDao metadataDao, LocalFolderService localFolderService,
             DropboxService dropboxService) {
         super("upload", globalOperationsTracker);
         this.metadaDao = metadataDao;
@@ -52,20 +52,23 @@ public class UploadService
     }
 
     private void uploadData(LocalFolderData changeData) {
-        String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath());
-        
+        String dropboxPath = localFolderService
+                .extractDropboxPath(changeData.getPath());
+
         globalOperationsTracker.start(dropboxPath.toLowerCase());
         try {
-            if (! changeData.fileExists() ) {
+            if (!changeData.fileExists()) {
                 deleteData(dropboxPath);
-                
+                LOG.info("Deleted from Dropbox {}", () -> dropboxPath);
+
             } else if (changeData.isDirectory()) {
                 createDirectory(dropboxPath);
-                
+                LOG.info("Created in Dropbox {}", () -> dropboxPath);
+
             } else {
                 uploadFile(dropboxPath, changeData);
+                LOG.info("Uploaded to Dropbox {}", () -> dropboxPath);
             }
-            LOG.info("Uploaded {}", () -> dropboxPath);
         } finally {
             globalOperationsTracker.stop(dropboxPath.toLowerCase());
         }
@@ -73,10 +76,15 @@ public class UploadService
 
     private void uploadFile(String dropboxPath, LocalFolderData changeData) {
         File file = changeData.getPath().toFile();
-        try (InputStream is = new FileInputStream(file)) {
-            
-            dropboxService.uploadFile(dropboxPath, is, changeData.getSize());
-            
+        try (InputStream is = new BufferedInputStream(
+                new FileInputStream(file))) {
+
+            DropboxFileData fileData = dropboxService.uploadFile(dropboxPath,
+                    is, changeData.getSize());
+
+            metadaDao.write(fileData);
+            metadaDao.writeLoadedFlag(fileData.getId(), true);
+
         } catch (IOException e) {
             LOG.error("Error when reading file for upload", e);
             throw new DSyncClientException(e);
@@ -84,11 +92,16 @@ public class UploadService
     }
 
     private void createDirectory(String dropboxPath) {
-        dropboxService.createFolder(dropboxPath);
+        DropboxFileData fileData = dropboxService.createFolder(dropboxPath);
+
+        metadaDao.write(fileData);
+        metadaDao.writeLoadedFlag(fileData.getId(), true);
     }
 
     private void deleteData(String dropboxPath) {
         dropboxService.deleteFile(dropboxPath);
+        
+        metadaDao.deleteByLowerPath(dropboxPath.toLowerCase());
     }
 
     @Override
@@ -108,7 +121,8 @@ public class UploadService
 
     @Override
     protected String extractPathLower(LocalFolderData changeData) {
-        String dropboxPath = localFolderService.extractDropboxPath(changeData.getPath());
+        String dropboxPath = localFolderService
+                .extractDropboxPath(changeData.getPath());
         return dropboxPath.toLowerCase();
     }
 
