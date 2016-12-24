@@ -34,9 +34,16 @@ import com.dropbox.core.DbxRequestConfig.Builder;
 import com.dropbox.core.DbxWebAuth;
 import com.dropbox.core.DbxWebAuth.Request;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.CommitInfo;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderGetLatestCursorResult;
 import com.dropbox.core.v2.files.ListFolderResult;
+import com.dropbox.core.v2.files.Metadata;
+import com.dropbox.core.v2.files.UploadSessionAppendV2Uploader;
+import com.dropbox.core.v2.files.UploadSessionCursor;
+import com.dropbox.core.v2.files.UploadSessionFinishUploader;
+import com.dropbox.core.v2.files.UploadSessionStartResult;
+import com.dropbox.core.v2.files.UploadSessionStartUploader;
 import com.dropbox.core.v2.files.UploadUploader;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
@@ -190,23 +197,57 @@ public class DropboxService {
         }
     }
     
-    public void createFolder(String dropboxPath) {
+    public DropboxFileData createFolder(String dropboxPath) {
         try {
-            client.files().createFolder(dropboxPath);
+            Metadata metadata = client.files().createFolder(dropboxPath);
+            return DropboxUtil.convertMetadata(metadata);
         } catch (DbxException e) {
             LOG.error("Failed to create folder in Dropbox: " + dropboxPath, e);
             throw new DSyncClientException(e);
         }
     }
 
-    public void uploadFile(String dropboxPath, InputStream inputStream, long size) {
+    public DropboxFileData uploadFile(String dropboxPath, InputStream inputStream, long size) {
         try {
             
-            if (size <= MAX_FILE_UPLOAD_CHUNK) {
-                LOG.trace("File size is smaller than 150MB. Uploading in single call ({})", () -> dropboxPath);
-                UploadUploader uploader = client.files().upload(dropboxPath);
-                uploader.uploadAndFinish(inputStream);
+            final Metadata metadata;
+            
+            int chunks = (int)(size / MAX_FILE_UPLOAD_CHUNK);
+            if (chunks*MAX_FILE_UPLOAD_CHUNK < size) {
+                chunks += 1;
             }
+            
+            if (chunks == 1) {
+                LOG.debug("File size is smaller than MAX. Uploading in single call ({})", () -> dropboxPath);
+                UploadUploader uploader = client.files().upload(dropboxPath);
+                metadata = uploader.uploadAndFinish(inputStream);
+                
+            } else {
+                LOG.debug("Chunk upload (1 of {}) for {}", chunks, dropboxPath);
+                UploadSessionStartUploader startUploader = client.files().uploadSessionStart();
+                UploadSessionStartResult startResult = startUploader.uploadAndFinish(inputStream, MAX_FILE_UPLOAD_CHUNK);
+                int chunksUploaded = 1;
+            
+                String sessionId = startResult.getSessionId();
+            
+                while ( chunksUploaded < (chunks-1) ) {
+                    LOG.debug("Chunk upload ({} of {}) for {}", chunksUploaded+1, chunks, dropboxPath);
+                    UploadSessionCursor cursor = new UploadSessionCursor(sessionId, chunksUploaded*MAX_FILE_UPLOAD_CHUNK);
+                    UploadSessionAppendV2Uploader appendUploader = client.files().uploadSessionAppendV2(cursor);
+                    appendUploader.uploadAndFinish(inputStream, MAX_FILE_UPLOAD_CHUNK);
+                    chunksUploaded++;
+                }
+                
+                LOG.debug("Chunk upload ({} of {}) for {}", chunksUploaded+1, chunks, dropboxPath);
+                UploadSessionCursor cursor = new UploadSessionCursor(sessionId, chunksUploaded*MAX_FILE_UPLOAD_CHUNK);
+                CommitInfo commitInfo = new CommitInfo(dropboxPath);
+                UploadSessionFinishUploader finishUploader = client.files().uploadSessionFinish(cursor, commitInfo);
+                metadata = finishUploader.uploadAndFinish(inputStream);
+                
+                LOG.debug("Upload completed for {}", ()-> dropboxPath);
+            }
+            
+            return DropboxUtil.convertMetadata(metadata);
             
         } catch (Exception ex) {
             LOG.error("Failed to upload file to Dropbox: " + dropboxPath, ex);
