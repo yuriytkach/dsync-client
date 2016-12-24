@@ -33,7 +33,7 @@ public class UploadService
 
     private static final Logger LOG = LogManager.getLogger(UploadService.class);
 
-    private final MetadataDao metadaDao;
+    private final MetadataDao metadataDao;
     private final LocalFolderService localFolderService;
     private final DropboxService dropboxService;
 
@@ -41,7 +41,7 @@ public class UploadService
             MetadataDao metadataDao, LocalFolderService localFolderService,
             DropboxService dropboxService) {
         super("upload", globalOperationsTracker);
-        this.metadaDao = metadataDao;
+        this.metadataDao = metadataDao;
         this.localFolderService = localFolderService;
         this.dropboxService = dropboxService;
     }
@@ -82,8 +82,8 @@ public class UploadService
             DropboxFileData fileData = dropboxService.uploadFile(dropboxPath,
                     is, changeData.getSize());
 
-            metadaDao.write(fileData);
-            metadaDao.writeLoadedFlag(fileData.getId(), true);
+            metadataDao.write(fileData);
+            metadataDao.writeLoadedFlag(fileData.getId(), true);
 
         } catch (IOException e) {
             LOG.error("Error when reading file for upload", e);
@@ -94,14 +94,14 @@ public class UploadService
     private void createDirectory(String dropboxPath) {
         DropboxFileData fileData = dropboxService.createFolder(dropboxPath);
 
-        metadaDao.write(fileData);
-        metadaDao.writeLoadedFlag(fileData.getId(), true);
+        metadataDao.write(fileData);
+        metadataDao.writeLoadedFlag(fileData.getId(), true);
     }
 
     private void deleteData(String dropboxPath) {
         dropboxService.deleteFile(dropboxPath);
         
-        metadaDao.deleteByLowerPath(dropboxPath.toLowerCase());
+        metadataDao.deleteByLowerPath(dropboxPath.toLowerCase());
     }
 
     @Override
