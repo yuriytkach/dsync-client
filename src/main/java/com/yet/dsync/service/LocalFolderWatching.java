@@ -65,7 +65,7 @@ public class LocalFolderWatching implements Runnable {
 
     private final WatchService watchService;
 
-    private final BlockingQueue<LocalFolderData> localPatheChanges = new LinkedBlockingDeque<>(
+    private final BlockingQueue<LocalFolderData> localPathChanges = new LinkedBlockingDeque<>(
             10);
     private Map<WatchKey, Path> keys;
     private WatcherRegisterConsumer watcherConsumer;
@@ -149,29 +149,7 @@ public class LocalFolderWatching implements Runnable {
 
                             Path path = dir.resolve(event.context());
 
-                            String dropboxPathLower = PathUtil
-                                    .extractDropboxPath(localDir, path)
-                                    .toLowerCase();
-                            if (globalOperationsTracker
-                                    .isTracked(dropboxPathLower)) {
-                                LOG.trace("Path already tracked. Skipping: {}",
-                                        () -> path);
-                            } else {
-                                LocalFolderChangeType changeType = LocalFolderChangeType
-                                        .fromWatchEventKind(watchEventKind);
-
-                                LocalFolderData localPathChange = new LocalFolderData(
-                                        path, changeType);
-
-                                LOG.trace("Local event {} on path {}",
-                                        changeType, path);
-
-                                try {
-                                    localPatheChanges.put(localPathChange);
-                                } catch (Exception e1) {
-                                    LOG.error("Interrupted", e1);
-                                }
-                            }
+                            processWatchEvent(watchEventKind, path);
                         });
 
                 boolean valid = key.reset(); // IMPORTANT: The key must be reset
@@ -191,13 +169,40 @@ public class LocalFolderWatching implements Runnable {
         }
     }
 
+    private void processWatchEvent(Kind<Path> watchEventKind, Path path) {
+        String dropboxPathLower = PathUtil.extractDropboxPath(localDir, path)
+                .toLowerCase();
+        if (globalOperationsTracker.isTracked(dropboxPathLower)) {
+            LOG.trace("Path already tracked. Skipping: {}", () -> path);
+        } else {
+            LocalFolderChangeType changeType = LocalFolderChangeType
+                    .fromWatchEventKind(watchEventKind);
+
+            LocalFolderData localPathChange = new LocalFolderData(path,
+                    changeType);
+
+            LOG.trace("Local event {} on path {}", changeType, path);
+
+            try {
+                localPathChanges.put(localPathChange);
+            } catch (Exception e1) {
+                LOG.error("Interrupted", e1);
+            }
+        }
+    }
+
+    /**
+     * The thread will take localFolderData object from the queue and sleep for
+     * predefined time. After that the change will be processed based on change
+     * type.
+     */
     private class ChangeWaitThread implements Runnable {
 
         @Override
         public void run() {
             while (!Thread.interrupted()) {
                 try {
-                    LocalFolderData folderData = localPatheChanges.take();
+                    LocalFolderData folderData = localPathChanges.take();
 
                     Thread.sleep(LOCAL_CHANGE_WAIT_TIME);
 
@@ -241,7 +246,6 @@ public class LocalFolderWatching implements Runnable {
         private void processFolderCreateChange(LocalFolderData folderData)
                 throws IOException {
             watcherConsumer.accept(folderData.getPath());
-
             changeListener.processChange(folderData);
         }
 
