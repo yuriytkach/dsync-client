@@ -18,7 +18,7 @@
 		<commons.io.version>2.4</commons.io.version>
 		<commons.cli.version>1.2</commons.cli.version>
 		<commons.lang.version>2.6</commons.lang.version>
-		
+
 		<guava.version>20.0</guava.version>
 
 		<log4j.version>2.7</log4j.version>
@@ -141,6 +141,26 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>3.0.2</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<classpathPrefix>./lib/</classpathPrefix>
+							<mainClass>com.yet.dsync.DSyncClient</mainClass>
+						</manifest>
+						<manifestEntries>
+							<Class-Path>./config/</Class-Path>
+						</manifestEntries>
+						<manifestEntries>
+							<Version>${project.version}</Version>
+						</manifestEntries>
+					</archive>
+				</configuration>
 			</plugin>
 
 			<plugin>
