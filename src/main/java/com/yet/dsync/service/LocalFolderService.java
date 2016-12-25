@@ -101,7 +101,7 @@ public class LocalFolderService {
         }
     }
     
-    public void deleteFileOrFolder(String path) {
+    public synchronized void deleteFileOrFolder(String path) {
         File file = buildFileObject(path);
         if (file.exists()) {
             if (file.isDirectory()) {
