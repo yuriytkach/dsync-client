@@ -80,7 +80,7 @@ public class DropboxPolling implements Runnable {
                                 try {
                                     Thread.sleep(backoff * 1000);
                                 } catch (InterruptedException e1) {
-                                    e1.printStackTrace();
+                                    LOG.error("Interrupted", e1);
                                 }
                             }
                         }

@@ -169,7 +169,7 @@ public class LocalFolderWatching implements Runnable {
             watchService.close();
 
         } catch (IOException e) {
-            throw new DSyncClientException(e);
+            LOG.debug("Error in local watcher", e);
         }
     }
 

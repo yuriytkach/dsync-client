@@ -159,8 +159,8 @@ public abstract class AbstractChangeProcessingService<T> {
                 try {
                     changeData = queue.take();
                     processChange(changeData);
-                } catch (InterruptedException e) {
-                    LOG.error("Interrupted", e);
+                } catch (Exception e) {
+                    LOG.error("Failed to process changeData", e);
                 }
             }
         }
