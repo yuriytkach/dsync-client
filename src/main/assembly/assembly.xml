@@ -26,7 +26,18 @@
         </fileSet>
         <fileSet>
             <directory>src/main/scripts</directory>
-            <outputDirectory>scripts</outputDirectory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>*.sh</include>
+            </includes>
+            <fileMode>0755</fileMode>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/scripts</directory>
+            <outputDirectory>/</outputDirectory>
+            <excludes>
+                <exclude>*.sh</exclude>
+            </excludes>
         </fileSet>
     </fileSets>
     
