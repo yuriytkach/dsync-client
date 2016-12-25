@@ -1,9 +1,11 @@
 # dsync-client
 Dropbox two-way synchronization client
 
-Under heavy development right now :) I'll post a good description with instructions when I have stable version with minimum amount of features:
-* Sync events from server to local dir
-* Sync events on local dir to server
-* No conflict handling (for now: server wins)
-* Minimum optimizations for events handling (e.g. treat delete+create without size change as rename, etc)
-* No use of fancy technologies (for now: plain Java, jdbc, nio)
+**Basic features are working now!** Clone the project and do `mvn package` - get the full project in `target`.
+
+There is still room for improvement (like writing good readme :) 
+
+As of now, features that work:
+* Continuously sync files/folders from server to local dir
+* Continuously sync files/folders from local dir to server
+* No offline local changes detection (so if you change localy something when client is not running, it won't pick up changes on start). Therefore, no conflict handling
