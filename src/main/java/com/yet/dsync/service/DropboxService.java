@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -65,6 +66,10 @@ public class DropboxService {
     private DbxRequestConfig config;
     private ConfigDao configDao;
 
+    private String appKeyFromProvider = "YOUR_APP_KEY";
+
+    private String appSecretFromProvider = "YOUR_APP_SECRET";
+
     public DropboxService(ConfigDao configDao) {
         this.configDao = configDao;
     }
@@ -75,8 +80,9 @@ public class DropboxService {
     }
 
     public void authenticate() {
-        final String APP_KEY = System.getProperty("APP_KEY", "YOUR_APP_KEY");
-        final String APP_SECRET = System.getProperty("APP_SECRET", "YOUR_APP_SECRET");
+        loadAppKeyProvider();
+        final String APP_KEY = loadAppKey();
+        final String APP_SECRET = loadAppSecret();
         
         DbxAppInfo appInfo = new DbxAppInfo(APP_KEY, APP_SECRET);
 
@@ -102,6 +108,35 @@ public class DropboxService {
             LOG.error("Failed to authorize", e);
             System.exit(-2);
         }
+    }
+
+    private void loadAppKeyProvider() {
+        try {
+            Class<?> clazz = Class.forName("com.yet.dsync.DSyncClientKeyProvider");
+            LOG.debug("DSyncClientKeyProvider class was found");
+            
+            Object obj = clazz.newInstance();
+            
+            Method getKeyMethod = clazz.getDeclaredMethod("getKey");
+            Method getSecretMethod = clazz.getDeclaredMethod("getSecret");
+            
+            this.appKeyFromProvider = (String)getKeyMethod.invoke(obj);
+            this.appSecretFromProvider = (String)getSecretMethod.invoke(obj);
+            
+            LOG.debug("Got key and secret from key provider");
+        } catch (Exception e) {
+            LOG.debug("DSyncClientKeyProvider class not found");
+        }
+    }
+
+    private String loadAppSecret() {
+        final String APP_SECRET = System.getProperty("APP_SECRET", appSecretFromProvider);
+        return APP_SECRET;
+    }
+
+    private String loadAppKey() {
+        final String APP_KEY = System.getProperty("APP_KEY", appKeyFromProvider);
+        return APP_KEY;
     }
 
     public void createClient() {
