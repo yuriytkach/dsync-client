@@ -36,6 +36,7 @@ import com.dropbox.core.DbxWebAuth;
 import com.dropbox.core.DbxWebAuth.Request;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.CommitInfo;
+import com.dropbox.core.v2.files.DeleteErrorException;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderGetLatestCursorResult;
 import com.dropbox.core.v2.files.ListFolderResult;
@@ -226,6 +227,13 @@ public class DropboxService {
     public void deleteFile(String dropboxPath) {
         try {
             client.files().delete(dropboxPath);
+        } catch (DeleteErrorException ex) {
+            if (ex.errorValue.getPathLookupValue().isNotFound()) {
+                LOG.warn("Didn't delete, because path was not found on server: {}", ()->dropboxPath);
+            } else {
+                LOG.error("Failed to delete from Dropbox: " + dropboxPath, ex);
+                throw new DSyncClientException(ex);
+            }
         } catch (DbxException e) {
             LOG.error("Failed to delete from Dropbox: " + dropboxPath, e);
             throw new DSyncClientException(e);
