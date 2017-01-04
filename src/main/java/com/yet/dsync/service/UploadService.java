@@ -53,9 +53,9 @@ public class UploadService
     }
 
     private void uploadData(LocalFolderData changeData) {
-        String dropboxPath = extractPathLower(changeData);
+        String dropboxPath = extractPath(changeData);
 
-        globalOperationsTracker.start(dropboxPath);
+        globalOperationsTracker.start(dropboxPath.toLowerCase());
         try {
             if (!changeData.fileExists()) {
                 deleteData(dropboxPath);
@@ -107,6 +107,12 @@ public class UploadService
         
         metadataDao.deleteByLowerPath(dropboxPath.toLowerCase());
     }
+    
+    private String extractPath(LocalFolderData changeData) {
+        String dropboxPath = localFolderService
+                .extractDropboxPath(changeData.getPath());
+        return dropboxPath;
+    }
 
     @Override
     protected boolean isFile(LocalFolderData changeData) {
@@ -125,9 +131,8 @@ public class UploadService
 
     @Override
     protected String extractPathLower(LocalFolderData changeData) {
-        String dropboxPath = localFolderService
-                .extractDropboxPath(changeData.getPath());
+        final String dropboxPath = extractPath(changeData);
         return dropboxPath.toLowerCase();
     }
-
+    
 }
