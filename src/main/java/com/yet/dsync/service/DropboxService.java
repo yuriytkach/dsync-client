@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.util.Date;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,12 +42,13 @@ import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderGetLatestCursorResult;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.files.Metadata;
+import com.dropbox.core.v2.files.UploadBuilder;
 import com.dropbox.core.v2.files.UploadSessionAppendV2Uploader;
 import com.dropbox.core.v2.files.UploadSessionCursor;
 import com.dropbox.core.v2.files.UploadSessionFinishUploader;
 import com.dropbox.core.v2.files.UploadSessionStartResult;
 import com.dropbox.core.v2.files.UploadSessionStartUploader;
-import com.dropbox.core.v2.files.UploadUploader;
+import com.dropbox.core.v2.files.WriteMode;
 import com.dropbox.core.v2.users.FullAccount;
 import com.dropbox.core.v2.users.SpaceUsage;
 import com.yet.dsync.dao.ConfigDao;
@@ -250,7 +252,8 @@ public class DropboxService {
         }
     }
 
-    public DropboxFileData uploadFile(String dropboxPath, InputStream inputStream, long size) {
+    public DropboxFileData uploadFile(String dropboxPath, InputStream inputStream, long size, 
+            Date lastModified, boolean override) {
         try {
             
             final Metadata metadata;
@@ -260,10 +263,16 @@ public class DropboxService {
                 chunks += 1;
             }
             
+            final WriteMode writeMode = override ? WriteMode.OVERWRITE : WriteMode.ADD;
+            final Boolean autoRename = override ? Boolean.FALSE : Boolean.TRUE;
+            
             if (chunks == 1) {
                 LOG.debug("File size is smaller than MAX. Uploading in single call ({})", () -> dropboxPath);
-                UploadUploader uploader = client.files().upload(dropboxPath);
-                metadata = uploader.uploadAndFinish(inputStream);
+                UploadBuilder uploadBuilder = client.files().uploadBuilder(dropboxPath);
+                uploadBuilder.withClientModified(lastModified);
+                uploadBuilder.withMode(writeMode);
+                uploadBuilder.withAutorename(autoRename);
+                metadata = uploadBuilder.uploadAndFinish(inputStream);
                 
             } else {
                 LOG.debug("Chunk upload (1 of {}) for {}", chunks, dropboxPath);
@@ -283,7 +292,7 @@ public class DropboxService {
                 
                 LOG.debug("Chunk upload ({} of {}) for {}", chunksUploaded+1, chunks, dropboxPath);
                 UploadSessionCursor cursor = new UploadSessionCursor(sessionId, chunksUploaded*MAX_FILE_UPLOAD_CHUNK);
-                CommitInfo commitInfo = new CommitInfo(dropboxPath);
+                CommitInfo commitInfo = new CommitInfo(dropboxPath, writeMode, autoRename, lastModified, false);
                 UploadSessionFinishUploader finishUploader = client.files().uploadSessionFinish(cursor, commitInfo);
                 metadata = finishUploader.uploadAndFinish(inputStream);
                 

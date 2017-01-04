@@ -19,6 +19,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Date;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -79,12 +82,33 @@ public class UploadService
     }
 
     private void uploadFile(String dropboxPath, LocalFolderData changeData) {
-        File file = changeData.getPath().toFile();
+        final File file = changeData.getPath().toFile();
+        
+        final long lastModified = file.lastModified();
+        final Date lastModifiedDate = (lastModified == 0L) ? new Date() : new Date(lastModified);
+        
+        final LocalDateTime lastModifiedDateTime = LocalDateTime.ofInstant(lastModifiedDate.toInstant(), ZoneOffset.UTC);
+        
+        LOG.debug("File modified dateTime is {} for {}", lastModifiedDateTime.toString(), dropboxPath);
+        
+        final DropboxFileData existingFileData = metadataDao.readByLowerPath(dropboxPath.toLowerCase());
+        final boolean override;
+        if (existingFileData == null) {
+            override = false;
+            LOG.debug("Existing file info is not found for {}", ()->dropboxPath);
+        } else if (existingFileData.getServerModified().isBefore(lastModifiedDateTime)) {
+            override = true;
+            LOG.debug("Existing file info is found and serverModified is earlier for {}", ()->dropboxPath);
+        } else {
+            override = false;
+            LOG.debug("Existing file info is found and serverModified is later for {}", ()->dropboxPath);
+        }
+        
         try (InputStream is = new BufferedInputStream(
                 new FileInputStream(file))) {
-
+            
             DropboxFileData fileData = dropboxService.uploadFile(dropboxPath,
-                    is, changeData.getSize());
+                    is, changeData.getSize(), lastModifiedDate, override);
 
             metadataDao.write(fileData);
             metadataDao.writeLoadedFlag(fileData.getId(), true);
