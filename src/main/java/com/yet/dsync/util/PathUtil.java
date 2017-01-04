@@ -17,9 +17,13 @@ package com.yet.dsync.util;
 import java.io.File;
 import java.nio.file.Path;
 
+import org.apache.commons.io.FilenameUtils;
+
 public class PathUtil {
 
     public static String extractDropboxPath(String localDir, String fullPath) {
+        localDir = FilenameUtils.normalize(localDir, true);
+        fullPath = FilenameUtils.normalize(fullPath, true);
         return fullPath.substring(localDir.length()).trim();
     }
 
