@@ -7,6 +7,8 @@ You can download the distribution, unzip and use it. Run the \*.sh file and foll
 
 If you want to compilte from sources, then clone the project. Don't forget to register new app in [Dropbox app console](https://www.dropbox.com/developers/apps) and specify the `APP_KEY` and `APP_SECRET` as environment variables.
 
+Uses the official Dropbox API v2. No passport is required or stored by the app, because oAuth is used.
+
 **Basic features are working now!** Clone the project and do `mvn package` to get the full project in `target`.
 
 There is still room for improvement (like writing good readme :) 
