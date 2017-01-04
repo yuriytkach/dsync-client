@@ -17,6 +17,7 @@ package com.yet.dsync.util;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.FolderMetadata;
@@ -40,7 +41,7 @@ public class DropboxUtil {
             
         } else if (metadata instanceof FileMetadata) {
             FileMetadata fileMetadata = (FileMetadata) metadata;
-            ZoneId zoneId = ZoneId.of("GMT");
+            ZoneId zoneId = ZoneOffset.UTC;
             Instant clientModifiedInstant = fileMetadata.getClientModified().toInstant();
             Instant serverModifiedInstant = fileMetadata.getServerModified().toInstant();
             builder
