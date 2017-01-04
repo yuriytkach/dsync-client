@@ -10,6 +10,8 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        
+        <distribution.out.dir>${project.build.directory}</distribution.out.dir>
 
 		<dropbox.version>2.1.1</dropbox.version>
 		<sqlite.version>3.15.1</sqlite.version>
@@ -24,6 +26,15 @@
 		<log4j.version>2.7</log4j.version>
 		<jackson.yaml.version>2.8.5</jackson.yaml.version>
 	</properties>
+    
+    <profiles>
+        <profile>
+            <id>circleci</id>
+            <properties>
+                <distribution.out.dir>${CIRCLE_ARTIFACTS}</distribution.out.dir>
+            </properties>
+        </profile>
+    </profiles>
 
 	<dependencies>
 		<dependency>
@@ -131,6 +142,7 @@
 					<descriptors>
 						<descriptor>src/main/assembly/assembly.xml</descriptor>
 					</descriptors>
+                    <outputDirectory>${distribution.out.dir}</outputDirectory>
 				</configuration>
 				<executions>
 					<execution>
