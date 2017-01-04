@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.yet.dsync</groupId>
 	<artifactId>dsync-client</artifactId>
-	<version>0.5-SNAPSHOT</version>
+	<version>0.5</version>
 	<name>Dropbox Sync Client</name>
 	<description>Dropbox two-way syncronization client</description>
 
