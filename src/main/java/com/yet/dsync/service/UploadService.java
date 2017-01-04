@@ -25,6 +25,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.DropboxFileData;
+import com.yet.dsync.dto.LocalFolderChangeType;
 import com.yet.dsync.dto.LocalFolderData;
 import com.yet.dsync.exception.DSyncClientException;
 
@@ -52,18 +53,21 @@ public class UploadService
     }
 
     private void uploadData(LocalFolderData changeData) {
-        String dropboxPath = localFolderService
-                .extractDropboxPath(changeData.getPath());
+        String dropboxPath = extractPathLower(changeData);
 
-        globalOperationsTracker.start(dropboxPath.toLowerCase());
+        globalOperationsTracker.start(dropboxPath);
         try {
             if (!changeData.fileExists()) {
                 deleteData(dropboxPath);
                 LOG.info("Deleted from Dropbox {}", () -> dropboxPath);
 
             } else if (changeData.isDirectory()) {
-                createDirectory(dropboxPath);
-                LOG.info("Created in Dropbox {}", () -> dropboxPath);
+                if (LocalFolderChangeType.CREATE == changeData.getChangeType()) {
+                    createDirectory(dropboxPath);
+                    LOG.info("Created in Dropbox {}", () -> dropboxPath);
+                } else {
+                    LOG.info("Modify on local folder. Doing nothing for {}", () -> dropboxPath);
+                }
 
             } else {
                 uploadFile(dropboxPath, changeData);
