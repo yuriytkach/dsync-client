@@ -256,7 +256,7 @@ public class DropboxService {
             final Metadata metadata;
             
             int chunks = (int)(size / MAX_FILE_UPLOAD_CHUNK);
-            if (chunks*MAX_FILE_UPLOAD_CHUNK < size) {
+            if (chunks*MAX_FILE_UPLOAD_CHUNK <= size) {
                 chunks += 1;
             }
             
