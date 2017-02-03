@@ -14,12 +14,6 @@
 
 package com.yet.dsync.service;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.ListFolderLongpollResult;
@@ -28,6 +22,11 @@ import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DropboxPolling implements Runnable {
     
@@ -70,19 +69,25 @@ public class DropboxPolling implements Runnable {
                     boolean changes = false;
 
                     while (!changes) {
-                        ListFolderLongpollResult listFolderLongpollResult = client.files().listFolderLongpoll(cursor);
-                        changes = listFolderLongpollResult.getChanges();
+                        try {
+                            final ListFolderLongpollResult listFolderLongpollResult = client.files().listFolderLongpoll(cursor);
 
-                        if (!changes) {
+                            changes = listFolderLongpollResult.getChanges();
 
-                            Long backoff = listFolderLongpollResult.getBackoff();
-                            if (backoff != null) {
-                                try {
-                                    Thread.sleep(backoff * 1000);
-                                } catch (InterruptedException e1) {
-                                    LOG.error("Interrupted", e1);
+                            if (!changes) {
+
+                                final Long backoff = listFolderLongpollResult.getBackoff();
+                                if (backoff != null) {
+                                    try {
+                                        Thread.sleep(backoff * 1000);
+                                    } catch (InterruptedException e1) {
+                                        LOG.error("Interrupted", e1);
+                                    }
                                 }
                             }
+                        } catch (Exception e) {
+                            LOG.warn("Failed during long poll: {}", e.getMessage());
+                            LOG.warn("Retrying long poll");
                         }
                     }
                     listFolderResult = client.files().listFolderContinue(cursor);
