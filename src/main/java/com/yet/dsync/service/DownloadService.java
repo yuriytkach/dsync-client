@@ -1,18 +1,26 @@
 /*
- * Copyright (C) 2016  Yuriy Tkach
- * 
+ * Copyright (c) 2017 Yuriy Tkach
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.    
+ * GNU General Public License for more details.
  */
 
 package com.yet.dsync.service;
+
+import com.yet.dsync.dao.MetadataDao;
+import com.yet.dsync.dto.DropboxChangeType;
+import com.yet.dsync.dto.DropboxFileData;
+import com.yet.dsync.exception.DSyncClientException;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -20,15 +28,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collection;
-
-import org.apache.commons.io.FilenameUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.yet.dsync.dao.MetadataDao;
-import com.yet.dsync.dto.DropboxChangeType;
-import com.yet.dsync.dto.DropboxFileData;
-import com.yet.dsync.exception.DSyncClientException;
 
 public class DownloadService
         extends AbstractChangeProcessingService<DropboxFileData> {
@@ -40,10 +39,10 @@ public class DownloadService
     private final LocalFolderService localFolderService;
     private final DropboxService dropboxService;
 
-    public DownloadService(GlobalOperationsTracker globalOperationsTracker,
-            MetadataDao metadaDao,
-            LocalFolderService localFolderService,
-            DropboxService dropboxService) {
+    public DownloadService(final GlobalOperationsTracker globalOperationsTracker,
+                           final MetadataDao metadaDao,
+                           final LocalFolderService localFolderService,
+                           final DropboxService dropboxService) {
         super("download", globalOperationsTracker);
 
         this.metadataDao = metadaDao;
@@ -59,10 +58,10 @@ public class DownloadService
             } else if (fileData.isDirectory()) {
                 createDirectory(fileData);
             } else {
-                File file = resolveFile(fileData);
-    
+                final File file = resolveFile(fileData);
+
                 if (file.getParentFile().exists()) {
-                    try (OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
+                    try (final OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
                         dropboxService.downloadFile(fileData.getPathDisplay(), fos);
                         metadataDao.writeLoadedFlag(fileData.getId(), true);
                     } catch (IOException e) {
@@ -78,40 +77,40 @@ public class DownloadService
         }
     }
 
-    private void deleteFileOrDirectory(DropboxFileData fd) {
+    private void deleteFileOrDirectory(final DropboxFileData fd) {
         localFolderService.deleteFileOrFolder(fd.getPathDisplay());
         metadataDao.deleteByLowerPath(fd.getPathLower());
         LOG.info("Removed {}", () -> fd.getPathDisplay());
     }
-    
-    private void createDirectory(DropboxFileData fileData) {
+
+    private void createDirectory(final DropboxFileData fileData) {
         localFolderService.createFolder(fileData.getPathDisplay());
         metadataDao.writeLoadedFlag(fileData.getId(), true);
 
         LOG.info("Created directory {}", () -> fileData.getPathDisplay());
     }
 
-    private File resolveFile(DropboxFileData fileData) {
+    private File resolveFile(final DropboxFileData fileData) {
         final String fileDir = FilenameUtils
                 .getFullPathNoEndSeparator(fileData.getPathDisplay());
         final String fileName = FilenameUtils
                 .getName(fileData.getPathDisplay());
 
-        File dir = localFolderService.buildFileObject(fileDir);
+        final File dir = localFolderService.buildFileObject(fileDir);
 
         final String fullFilePath;
         if (dir.exists()) {
             fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
         } else {
-            DropboxFileData dirData = metadataDao
+            final DropboxFileData dirData = metadataDao
                     .readByLowerPath(fileDir.toLowerCase());
             if (dirData != null) {
-                String fileDisplayPath = dirData.getPathDisplay()
+                final String fileDisplayPath = dirData.getPathDisplay()
                         + File.separator + fileName;
 
-                DropboxFileData.Builder newFileDataBuilder = new DropboxFileData.Builder();
+                final DropboxFileData.Builder newFileDataBuilder = new DropboxFileData.Builder();
                 newFileDataBuilder.init(fileData).pathDisplay(fileDisplayPath);
-                DropboxFileData newFileData = newFileDataBuilder.build();
+                final DropboxFileData newFileData = newFileDataBuilder.build();
                 metadataDao.write(newFileData);
 
                 fullFilePath = localFolderService
@@ -126,34 +125,34 @@ public class DownloadService
     }
 
     public void downloadAllNotLoaded() {
-        Collection<DropboxFileData> allNotLoaded = metadataDao.readAllNotLoaded();
+        final Collection<DropboxFileData> allNotLoaded = metadataDao.readAllNotLoaded();
         LOG.debug("Downloading {} objects that are not loaded..",
                 () -> allNotLoaded.size());
         allNotLoaded.forEach(this::scheduleProcessing);
     }
 
     @Override
-    protected void processChange(DropboxFileData changeData) {
+    protected void processChange(final DropboxFileData changeData) {
         downloadData(changeData);
     }
 
     @Override
-    protected boolean isFile(DropboxFileData changeData) {
+    protected boolean isFile(final DropboxFileData changeData) {
         return changeData.isFile();
     }
 
     @Override
-    protected long getFileSize(DropboxFileData changeData) {
+    protected long getFileSize(final DropboxFileData changeData) {
         return changeData.getSize();
     }
 
     @Override
-    protected boolean isDeleteData(DropboxFileData changeData) {
+    protected boolean isDeleteData(final DropboxFileData changeData) {
         return !changeData.isFile() && !changeData.isDirectory();
     }
 
     @Override
-    protected String extractPathLower(DropboxFileData changeData) {
+    protected String extractPathLower(final DropboxFileData changeData) {
         return changeData.getPathLower();
     }
 

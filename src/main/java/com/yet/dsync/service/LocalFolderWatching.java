@@ -1,18 +1,27 @@
 /*
- * Copyright (C) 2016  Yuriy Tkach
- * 
+ * Copyright (c) 2017 Yuriy Tkach
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.    
+ * GNU General Public License for more details.
  */
 
 package com.yet.dsync.service;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.yet.dsync.dto.LocalFolderChangeType;
+import com.yet.dsync.dto.LocalFolderData;
+import com.yet.dsync.exception.DSyncClientException;
+import com.yet.dsync.util.PathUtil;
+import com.yet.dsync.util.WatcherRegisterConsumer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,16 +52,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.yet.dsync.dto.LocalFolderChangeType;
-import com.yet.dsync.dto.LocalFolderData;
-import com.yet.dsync.exception.DSyncClientException;
-import com.yet.dsync.util.PathUtil;
-import com.yet.dsync.util.WatcherRegisterConsumer;
-
 public class LocalFolderWatching implements Runnable {
 
     private static final int WAIT_THREAD_COUNT = 10;
@@ -71,12 +70,12 @@ public class LocalFolderWatching implements Runnable {
 
     private final BlockingQueue<LocalFolderData> localPathChanges = new LinkedBlockingDeque<>(
             10);
-    private Map<WatchKey, Path> keys;
-    private WatcherRegisterConsumer watcherConsumer;
+    private final Map<WatchKey, Path> keys = new HashMap<>();
+    private final WatcherRegisterConsumer watcherConsumer;
 
-    private ConcurrentMap<Path, FileChangeData> filesModifiedMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Path, FileChangeData> filesModifiedMap = new ConcurrentHashMap<>();
 
-    private GlobalOperationsTracker globalOperationsTracker;
+    private final GlobalOperationsTracker globalOperationsTracker;
 
     public LocalFolderWatching(final String localDir,
             final LocalFolderChange changeListener,
@@ -91,14 +90,12 @@ public class LocalFolderWatching implements Runnable {
             throw new DSyncClientException(e);
         }
 
-        keys = new HashMap<>();
-
         watcherConsumer = new WatcherRegisterConsumer(watchService, key -> {
-            Path path = (Path) key.watchable();
+            final Path path = (Path) key.watchable();
             keys.put(key, path);
         });
 
-        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat("local-change-wait-%d").build();
 
         final ExecutorService executorService = Executors
@@ -107,11 +104,11 @@ public class LocalFolderWatching implements Runnable {
             executorService.execute(new ChangeWaitThread());
         }
 
-        namedThreadFactory = new ThreadFactoryBuilder()
+        final ThreadFactory namedThreadFactoryLocalWait = new ThreadFactoryBuilder()
                 .setNameFormat("local-file-wait-%d").build();
 
         final ScheduledExecutorService executorServiceForFiles = Executors
-                .newSingleThreadScheduledExecutor(namedThreadFactory);
+                .newSingleThreadScheduledExecutor(namedThreadFactoryLocalWait);
         executorServiceForFiles.scheduleAtFixedRate(new FileWaitThread(),
                 FILE_WAIT_TIME_SEC, FILE_WAIT_TIME_SEC, TimeUnit.SECONDS);
     }
@@ -121,7 +118,7 @@ public class LocalFolderWatching implements Runnable {
         Thread.currentThread().setName("local-poll");
         LOG.info("Started local folder watching");
 
-        Path localDirPath = Paths.get(localDir);
+        final Path localDirPath = Paths.get(localDir);
 
         try {
 
@@ -147,16 +144,16 @@ public class LocalFolderWatching implements Runnable {
                                 e -> (e.kind() != StandardWatchEventKinds.OVERFLOW))
                         .forEach(e -> {
                             @SuppressWarnings("unchecked")
-                            WatchEvent<Path> event = (WatchEvent<Path>) e;
+                            final WatchEvent<Path> event = (WatchEvent<Path>) e;
 
-                            Kind<Path> watchEventKind = event.kind();
+                            final Kind<Path> watchEventKind = event.kind();
 
-                            Path path = dir.resolve(event.context());
+                            final Path path = dir.resolve(event.context());
 
                             processWatchEvent(watchEventKind, path);
                         });
 
-                boolean valid = key.reset(); // IMPORTANT: The key must be reset
+                final boolean valid = key.reset(); // IMPORTANT: The key must be reset
                                              // after processed
                 if (!valid) {
                     LOG.warn(
@@ -173,16 +170,16 @@ public class LocalFolderWatching implements Runnable {
         }
     }
 
-    private void processWatchEvent(Kind<Path> watchEventKind, Path path) {
-        String dropboxPathLower = PathUtil.extractDropboxPath(localDir, path)
+    private void processWatchEvent(final Kind<Path> watchEventKind, final Path path) {
+        final String dropboxPathLower = PathUtil.extractDropboxPath(localDir, path)
                 .toLowerCase();
         if (globalOperationsTracker.isTracked(dropboxPathLower)) {
             LOG.trace("Path already tracked. Skipping: {}", () -> path);
         } else {
-            LocalFolderChangeType changeType = LocalFolderChangeType
+            final LocalFolderChangeType changeType = LocalFolderChangeType
                     .fromWatchEventKind(watchEventKind);
 
-            LocalFolderData localPathChange = new LocalFolderData(path,
+            final LocalFolderData localPathChange = new LocalFolderData(path,
                     changeType);
 
             LOG.trace("Local event {} on path {}", changeType, path);
@@ -206,11 +203,11 @@ public class LocalFolderWatching implements Runnable {
         public void run() {
             while (!Thread.interrupted()) {
                 try {
-                    LocalFolderData folderData = localPathChanges.take();
+                    final LocalFolderData folderData = localPathChanges.take();
 
                     Thread.sleep(LOCAL_CHANGE_WAIT_TIME);
 
-                    LocalFolderChangeType changeType = folderData
+                    final LocalFolderChangeType changeType = folderData
                             .getChangeType();
 
                     switch (changeType) {
@@ -231,14 +228,14 @@ public class LocalFolderWatching implements Runnable {
             }
         }
 
-        private void processModifyChange(LocalFolderData folderData,
-                LocalFolderChangeType changeType) {
+        private void processModifyChange(final LocalFolderData folderData,
+                                         final LocalFolderChangeType changeType) {
             filesModifiedMap.putIfAbsent(folderData.getPath(),
                     new FileChangeData(changeType, folderData.getSize()));
         }
 
-        private void processCreateChange(LocalFolderData folderData,
-                LocalFolderChangeType changeType) throws IOException {
+        private void processCreateChange(final LocalFolderData folderData,
+                                         final LocalFolderChangeType changeType) throws IOException {
             // If that's folder, then registering it for watching
             if (folderData.fileExists() && folderData.isDirectory()) {
                 processFolderCreateChange(folderData);
@@ -247,7 +244,7 @@ public class LocalFolderWatching implements Runnable {
             }
         }
 
-        private void processFolderCreateChange(LocalFolderData folderData)
+        private void processFolderCreateChange(final LocalFolderData folderData)
                 throws IOException {
             watcherConsumer.accept(folderData.getPath());
             changeListener.processChange(folderData);
@@ -256,15 +253,15 @@ public class LocalFolderWatching implements Runnable {
                 new SimpleFileVisitor<Path>() {
 
                     @Override
-                    public FileVisitResult visitFile(Path file,
-                            BasicFileAttributes attrs) throws IOException {
+                    public FileVisitResult visitFile(final Path file,
+                                                     final BasicFileAttributes attrs) throws IOException {
                         processWatchEvent(StandardWatchEventKinds.ENTRY_CREATE, file);
                         return FileVisitResult.CONTINUE;
                     }
 
                     @Override
-                    public FileVisitResult preVisitDirectory(Path dir,
-                            BasicFileAttributes attrs) throws IOException {
+                    public FileVisitResult preVisitDirectory(final Path dir,
+                                                             final BasicFileAttributes attrs) throws IOException {
                         if (dir.equals(folderData.getPath())) {
                             return FileVisitResult.CONTINUE;
                         } else {
@@ -275,15 +272,15 @@ public class LocalFolderWatching implements Runnable {
                 });
         }
 
-        private void processFileCreateChange(LocalFolderData folderData,
-                LocalFolderChangeType changeType) {
+        private void processFileCreateChange(final LocalFolderData folderData,
+                                             final LocalFolderChangeType changeType) {
             filesModifiedMap.put(folderData.getPath(),
                     new FileChangeData(changeType, folderData.getSize()));
             LOG.trace("File created. Waiting for completion ({})",
                     () -> folderData.getPath().toAbsolutePath());
         }
 
-        private void processDeleteChange(LocalFolderData folderData) {
+        private void processDeleteChange(final LocalFolderData folderData) {
             filesModifiedMap.remove(folderData.getPath());
             // Forwarding delete, as nothing to be done here
             changeListener.processChange(folderData);
@@ -299,7 +296,7 @@ public class LocalFolderWatching implements Runnable {
         public void run() {
             if (!filesModifiedMap.isEmpty()) {
                 LOG.trace("Checking files");
-                List<LocalFolderData> filesToProcess = filesModifiedMap
+                final List<LocalFolderData> filesToProcess = filesModifiedMap
                         .entrySet().stream().filter(this::fileIsReady)
                         .map(entry -> new LocalFolderData(entry.getKey(),
                                 entry.getValue().getChangeType()))
@@ -319,16 +316,16 @@ public class LocalFolderWatching implements Runnable {
          * Determining if file creation/modification is completed by comparing
          * current size of file with the recorded one that is stored in
          * FileChangeData.
-         * 
+         *
          * @param entry
          *            entry with path and file change data
          * @return true if file change can be processed by changeListener
          */
-        private boolean fileIsReady(Entry<Path, FileChangeData> entry) {
-            File file = entry.getKey().toFile();
+        private boolean fileIsReady(final Entry<Path, FileChangeData> entry) {
+            final File file = entry.getKey().toFile();
 
-            long currentSize = file.length();
-            long prevSize = entry.getValue().getSize();
+            final long currentSize = file.length();
+            final long prevSize = entry.getValue().getSize();
 
             if (currentSize == prevSize) {
                 if (entry.getValue().isFirstEqualCheckDone()) {
@@ -364,7 +361,7 @@ public class LocalFolderWatching implements Runnable {
 
         private boolean firstEqualCheckDone = false;
 
-        public FileChangeData(LocalFolderChangeType changeType, Long size) {
+        public FileChangeData(final LocalFolderChangeType changeType, final Long size) {
             this.changeType = changeType;
             this.size = size;
         }
@@ -373,7 +370,7 @@ public class LocalFolderWatching implements Runnable {
             return size;
         }
 
-        public void setSize(Long size) {
+        public void setSize(final Long size) {
             this.size = size;
         }
 
@@ -385,7 +382,7 @@ public class LocalFolderWatching implements Runnable {
             return firstEqualCheckDone;
         }
 
-        public void setFirstEqualCheckDone(boolean firstEqualCheckDone) {
+        public void setFirstEqualCheckDone(final boolean firstEqualCheckDone) {
             this.firstEqualCheckDone = firstEqualCheckDone;
         }
     }

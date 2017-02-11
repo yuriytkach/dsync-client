@@ -1,18 +1,22 @@
 /*
- * Copyright (C) 2016  Yuriy Tkach
- * 
+ * Copyright (c) 2017 Yuriy Tkach
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.    
+ * GNU General Public License for more details.
  */
 
 package com.yet.dsync.service;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -20,11 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * This class can track operations that are being processed either by Download
@@ -48,34 +47,34 @@ public class GlobalOperationsTracker {
     private final ScheduledExecutorService scheduledExecutorService;
 
     public GlobalOperationsTracker() {
-        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat("global-tracker-%d").build();
 
         scheduledExecutorService = Executors.newScheduledThreadPool(
                 SCHEDULED_POOL_SIZE, namedThreadFactory);
     }
 
-    public void start(String pathLower) {
+    public void start(final String pathLower) {
         trackMap.putIfAbsent(pathLower, Boolean.TRUE);
         LOG.trace("Added path to global tracking: {}", () -> pathLower);
     }
 
-    public void stop(String pathLower) {
+    public void stop(final String pathLower) {
         trackMap.put(pathLower, Boolean.FALSE);
         LOG.trace("Scheduled tracking stop for path: {}", () -> pathLower);
         scheduledExecutorService.schedule(new RemoveTrackingThread(pathLower),
                 WAIT_TIME_BEFORE_TRACK_REMOVE_SEC, TimeUnit.SECONDS);
     }
 
-    public boolean isTracked(String pathLower) {
+    public boolean isTracked(final String pathLower) {
         return trackMap.containsKey(pathLower);
     }
 
     private class RemoveTrackingThread implements Runnable {
 
-        private String pathLower;
+        private final String pathLower;
 
-        public RemoveTrackingThread(String pathLower) {
+        public RemoveTrackingThread(final String pathLower) {
             this.pathLower = pathLower;
         }
 

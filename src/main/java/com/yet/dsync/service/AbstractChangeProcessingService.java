@@ -1,18 +1,23 @@
 /*
- * Copyright (C) 2016  Yuriy Tkach
- * 
+ * Copyright (c) 2017 Yuriy Tkach
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.    
+ * GNU General Public License for more details.
  */
 
 package com.yet.dsync.service;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.yet.dsync.exception.DSyncClientException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Comparator;
 import java.util.concurrent.BlockingQueue;
@@ -20,12 +25,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadFactory;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.yet.dsync.exception.DSyncClientException;
 
 public abstract class AbstractChangeProcessingService<T> {
 
@@ -58,15 +57,16 @@ public abstract class AbstractChangeProcessingService<T> {
 
     private final ExecutorService executorService;
 
-    protected GlobalOperationsTracker globalOperationsTracker;
+    protected final GlobalOperationsTracker globalOperationsTracker;
 
-    public AbstractChangeProcessingService(String processingThreadName, GlobalOperationsTracker globalOperationsTracker) {
+    public AbstractChangeProcessingService(final String processingThreadName,
+                                           final GlobalOperationsTracker globalOperationsTracker) {
         this.globalOperationsTracker = globalOperationsTracker;
-        
+
         this.slowProcessingQueue = createDownloadQueue(changeComparator);
         this.quickProcessingQueue = createDownloadQueue(changeComparator);
 
-        ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
+        final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(processingThreadName + "-%d").build();
 
         this.executorService = Executors.newFixedThreadPool(
@@ -84,7 +84,7 @@ public abstract class AbstractChangeProcessingService<T> {
      * following way: folders, small files, big files;
      */
     private BlockingQueue<T> createDownloadQueue(
-            Comparator<? super T> changeComparator) {
+            final Comparator<? super T> changeComparator) {
         return new PriorityBlockingQueue<T>(100, changeComparator);
     }
 
@@ -98,34 +98,34 @@ public abstract class AbstractChangeProcessingService<T> {
         }
     }
 
-    protected abstract void processChange(T changeData);
+    protected abstract void processChange(final T changeData);
 
-    protected abstract boolean isFile(T changeData);
+    protected abstract boolean isFile(final T changeData);
 
-    protected abstract boolean isDeleteData(T changeData);
+    protected abstract boolean isDeleteData(final T changeData);
 
-    protected abstract long getFileSize(T changeData);
-    
-    protected abstract String extractPathLower(T changeData);
+    protected abstract long getFileSize(final T changeData);
+
+    protected abstract String extractPathLower(final T changeData);
 
     /**
      * If the changeData is file, then scheduling it either in quick or slow
      * processing queue based on size.
-     * 
+     *
      * Otherwise, scheduling it to quick processing queue.
-     * 
+     *
      * @param changeData
      *            Change data object that needs to be scheduled for processing
      */
-    public void scheduleProcessing(T changeData) {
-        String pathLower = extractPathLower(changeData);
-        
+    public void scheduleProcessing(final T changeData) {
+        final String pathLower = extractPathLower(changeData);
+
         if (globalOperationsTracker.isTracked(pathLower)) {
             LOG.debug("Path is already tracked. Skip: {}", ()->pathLower);
         } else {
             try {
                 if (isFile(changeData)) {
-                    long size = getFileSize(changeData);
+                    final long size = getFileSize(changeData);
                     if (size > SLOW_THRESHOLD) {
                         slowProcessingQueue.put(changeData);
                     } else {
@@ -146,18 +146,17 @@ public abstract class AbstractChangeProcessingService<T> {
      */
     private class ProcessingThread implements Runnable {
 
-        private BlockingQueue<T> queue;
+        private final BlockingQueue<T> queue;
 
-        public ProcessingThread(BlockingQueue<T> queue) {
+        public ProcessingThread(final BlockingQueue<T> queue) {
             this.queue = queue;
         }
 
         @Override
         public void run() {
             while (!Thread.interrupted()) {
-                T changeData;
                 try {
-                    changeData = queue.take();
+                    final T changeData = queue.take();
                     processChange(changeData);
                 } catch (Exception e) {
                     LOG.error("Failed to process changeData", e);

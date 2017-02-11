@@ -1,38 +1,38 @@
 /*
- * Copyright (C) 2016  Yuriy Tkach
- * 
+ * Copyright (c) 2017 Yuriy Tkach
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.    
+ * GNU General Public License for more details.
  */
 
 package com.yet.dsync.dto;
 
 public class UserData {
 
-    public static String humanReadableByteCount(long bytes) {
-        int unit = 1024;
+    public static String humanReadableByteCount(final long bytes) {
+        final int unit = 1024;
         if (bytes < unit) {
             return bytes + " B";
         }
-        int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = ("KMGTPE").charAt(exp - 1) + "i";
+        final int exp = (int) (Math.log(bytes) / Math.log(unit));
+        final String pre = ("KMGTPE").charAt(exp - 1) + "i";
         return String.format("%.2f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
-    private String userName;
+    private final String userName;
 
-    private long usedBytes;
+    private final long usedBytes;
 
-    private long availBytes;
+    private final long availBytes;
 
-    public UserData(String userName, long usedBytes, long availBytes) {
+    public UserData(final String userName, final long usedBytes, final long availBytes) {
         super();
         this.userName = userName;
         this.usedBytes = usedBytes;

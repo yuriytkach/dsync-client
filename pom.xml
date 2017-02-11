@@ -19,7 +19,7 @@
 		<junit.version>4.12</junit.version>
 		<commons.io.version>2.4</commons.io.version>
 		<commons.cli.version>1.2</commons.cli.version>
-		<commons.lang.version>2.6</commons.lang.version>
+		<commons.lang.version>3.5</commons.lang.version>
 
 		<guava.version>20.0</guava.version>
 
@@ -73,8 +73,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>commons-lang</groupId>
-			<artifactId>commons-lang</artifactId>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
 			<version>${commons.lang.version}</version>
 		</dependency>
 
@@ -226,7 +226,7 @@
 						</goals>
 						<configuration>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
-							<failOnViolation>false</failOnViolation>
+							<failOnViolation>true</failOnViolation>
 						</configuration>
 					</execution>
 				</executions>

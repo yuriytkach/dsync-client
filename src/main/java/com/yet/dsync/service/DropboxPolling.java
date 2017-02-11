@@ -1,15 +1,15 @@
 /*
- * Copyright (C) 2016  Yuriy Tkach
- * 
+ * Copyright (c) 2017 Yuriy Tkach
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.    
+ * GNU General Public License for more details.
  */
 
 package com.yet.dsync.service;
@@ -29,14 +29,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DropboxPolling implements Runnable {
-    
+
     private static final Logger LOG = LogManager.getLogger(DropboxPolling.class);
 
-    private DbxClientV2 client;
-    private ConfigDao configDao;
-    private DropboxChange changeListener;
+    private final DbxClientV2 client;
+    private final ConfigDao configDao;
+    private final DropboxChange changeListener;
 
-    public DropboxPolling(DbxClientV2 client, ConfigDao configDao, DropboxChange changeListener) {
+    public DropboxPolling(final DbxClientV2 client,
+                          final ConfigDao configDao,
+                          final DropboxChange changeListener) {
         this.client = client;
         this.configDao = configDao;
         this.changeListener = changeListener;
@@ -46,7 +48,7 @@ public class DropboxPolling implements Runnable {
     public void run() {
         Thread.currentThread().setName("drpbx-poll");
         LOG.info("Started Dropbox polling");
-        
+
         String cursor = readCursor();
 
         try {
@@ -56,11 +58,11 @@ public class DropboxPolling implements Runnable {
             while (!Thread.interrupted()) {
                 cursor = listFolderResult.getCursor();
                 saveCursor(cursor);
-                
-                Set<DropboxFileData> fileDataSet = listFolderResult.getEntries().stream()
+
+                final Set<DropboxFileData> fileDataSet = listFolderResult.getEntries().stream()
                     .map(DropboxUtil::convertMetadata)
                     .collect(Collectors.toSet());
-                
+
                 changeListener.processChange(fileDataSet);
 
                 if (listFolderResult.getHasMore()) {
@@ -102,7 +104,7 @@ public class DropboxPolling implements Runnable {
         return configDao.read(Config.CURSOR);
     }
 
-    private void saveCursor(String cursor) {
+    private void saveCursor(final String cursor) {
         configDao.write(Config.CURSOR, cursor);
     }
 
