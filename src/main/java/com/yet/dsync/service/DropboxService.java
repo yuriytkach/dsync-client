@@ -87,6 +87,7 @@ public class DropboxService {
         config = configBuilder.withAutoRetryEnabled(MAX_RETRIES).withUserLocaleFromPreferences().build();
     }
 
+    @SuppressWarnings({"PMD.SystemPrintln", "PMD.DoNotCallSystemExit"})
     public void authenticate() {
         loadAppKeyProvider();
         final String appKey = loadAppKey();

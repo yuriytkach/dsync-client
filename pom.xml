@@ -10,7 +10,7 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        
+
         <distribution.out.dir>${project.build.directory}</distribution.out.dir>
 
 		<dropbox.version>2.1.1</dropbox.version>
@@ -29,8 +29,10 @@
         <checkstyle.version>7.5.1</checkstyle.version>
         <checkstyle.plugin.version>2.17</checkstyle.plugin.version>
         <sevntu.checkstyle.plugin.version>1.23.0</sevntu.checkstyle.plugin.version>
+
+		<pmd.plugin.version>3.7</pmd.plugin.version>
 	</properties>
-    
+
     <profiles>
         <profile>
             <id>circleci</id>
@@ -231,7 +233,31 @@
 					</execution>
 				</executions>
             </plugin>
-		</plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>${pmd.plugin.version}</version>
+                <configuration>
+                    <rulesets>
+                        <ruleset>config/pmd/pmd-ruleset.xml</ruleset>
+                    </rulesets>
+                    <printFailingErrors>true</printFailingErrors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <failOnViolation>true</failOnViolation>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
 	</build>
 
     <reporting>
@@ -245,6 +271,16 @@
                     <failOnViolation>false</failOnViolation>
                 </configuration>
             </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>${pmd.plugin.version}</version>
+                <configuration>
+                    <rulesets>
+                        <ruleset>config/pmd/pmd-ruleset.xml</ruleset>
+                    </rulesets>
+                </configuration>
+			</plugin>
         </plugins>
     </reporting>
 

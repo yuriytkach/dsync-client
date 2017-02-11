@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    name="Custom ruleset"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 http://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+
+    <description>Teletrack ruleset</description>
+
+    <rule ref="rulesets/java/basic.xml"/>
+    <rule ref="rulesets/java/braces.xml"/>
+    <rule ref="rulesets/java/clone.xml"/>
+    <!-- <rule ref="rulesets/java/codesize.xml"/> -->
+    <!-- <rule ref="rulesets/java/comments.xml"/> -->
+    <rule ref="rulesets/java/controversial.xml">
+        <exclude name="OnlyOneReturn"/>
+        <exclude name="AtLeastOneConstructor"/>
+        <exclude name="CallSuperInConstructor"/>
+        <exclude name="UnnecessaryParentheses"/>
+        <exclude name="DefaultPackage"/>
+        <exclude name="DataflowAnomalyAnalysis"/>
+        <exclude name="AvoidFinalLocalVariable"/>
+        <exclude name="AvoidUsingShortType"/>
+        <exclude name="AvoidUsingVolatile"/>
+        <exclude name="AvoidLiteralsInIfCondition"/>
+        <exclude name="UseObjectForClearerAPI"/>
+        <exclude name="NullAssignment"/>
+        <exclude name="UseConcurrentHashMap"/>
+        <exclude name="AvoidPrefixingMethodParameters"/>
+    </rule>
+    <rule ref="rulesets/java/coupling.xml">
+        <exclude name="LawOfDemeter"/>
+        <!-- Is not usable rule -->
+        <exclude name="ExcessiveImports"/>
+        <exclude name="LoosePackageCoupling"/>
+    </rule>
+    <rule ref="rulesets/java/design.xml">
+        <exclude name="AccessorClassGeneration"/>
+        <exclude name="EmptyMethodInAbstractClassShouldBeAbstract"/>
+        <!-- Is not correct for Spring Boot world -->
+        <exclude name="UseUtilityClass"/>
+    </rule>
+    <rule ref="rulesets/java/empty.xml"/>
+    <rule ref="rulesets/java/finalizers.xml"/>
+    <rule ref="rulesets/java/imports.xml">
+        <exclude name="TooManyStaticImports"/>
+    </rule>
+    <rule ref="rulesets/java/j2ee.xml">
+        <exclude name="UseProperClassLoader"/>
+        <exclude name="MDBAndSessionBeanNamingConvention"/>
+        <exclude name="RemoteSessionInterfaceNamingConvention"/>
+        <exclude name="LocalInterfaceSessionNamingConvention"/>
+        <exclude name="LocalHomeNamingConvention"/>
+        <exclude name="RemoteInterfaceNamingConvention"/>
+        <exclude name="StaticEJBFieldShouldBeFinal"/>
+        <exclude name="DoNotUseThreads"/>
+    </rule>
+    <!-- <rule ref="rulesets/java/javabeans.xml"/> -->
+    <!-- <rule ref="rulesets/java/junit.xml"/> -->
+    <!-- <rule ref="rulesets/java/logging-jakarta-commons.xml"/> -->
+    <rule ref="rulesets/java/logging-java.xml">
+        <!--As the java logging is not use and getting false positive because of this rule-->
+        <exclude name="GuardLogStatementJavaUtil"/>
+        <!--This gives a lot of false positive (with PMD 5.5.2):-->
+        <exclude name="InvalidSlf4jMessageFormat"/>
+    </rule>
+    <!-- <rule ref="rulesets/java/migerating.xml"/> -->
+    <!-- <rule ref="rulesets/java/naming.xml"/> -->
+    <rule ref="rulesets/java/optimizations.xml">
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+        <exclude name="UseStringBufferForStringAppends"/>
+    </rule>
+    <!-- <rule ref="rulesets/java/strictexception.xml"/> -->
+    <rule ref="rulesets/java/strings.xml"/>
+    <rule ref="rulesets/java/sunsecure.xml"/>
+    <rule ref="rulesets/java/typeresolution.xml"/>
+    <rule ref="rulesets/java/unnecessary.xml">
+        <exclude name="UselessParentheses"/>
+    </rule>
+    <rule ref="rulesets/java/unusedcode.xml"/>
+</ruleset>

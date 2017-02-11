@@ -22,6 +22,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ConfigDao {
 
@@ -41,6 +43,8 @@ public class ConfigDao {
     private final PreparedStatement insertStatement;
     private final PreparedStatement updateStatement;
 
+    private final Lock syncLock = new ReentrantLock(true);
+
     public ConfigDao(final Connection connection) {
         try {
             readStatement = connection.prepareStatement(SELECT_STATEMENT);
@@ -52,38 +56,46 @@ public class ConfigDao {
     }
 
     public String read(final Config key) {
+        syncLock.lock();
         try {
             readStatement.setString(1, key.name());
 
-            final ResultSet resultSet = readStatement.executeQuery();
-            if (resultSet.next()) {
-                return resultSet.getString(1);
-            } else {
-                return StringUtils.EMPTY;
+            try (ResultSet resultSet = readStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString(1);
+                } else {
+                    return StringUtils.EMPTY;
+                }
             }
         } catch (final SQLException ex) {
             throw new DSyncClientException(ex);
+        } finally {
+            syncLock.unlock();
         }
     }
 
     public void write(final Config key, final String value) {
+        syncLock.lock();
         try {
             readStatement.setString(1, key.name());
 
-            final ResultSet resultSet = readStatement.executeQuery();
-            if (resultSet.next()) {
-                updateStatement.setString(1, value);
-                updateStatement.setString(2, key.name());
+            try (ResultSet resultSet = readStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    updateStatement.setString(1, value);
+                    updateStatement.setString(2, key.name());
 
-                updateStatement.executeUpdate();
-            } else {
-                insertStatement.setString(1, key.name());
-                insertStatement.setString(2, value);
+                    updateStatement.executeUpdate();
+                } else {
+                    insertStatement.setString(1, key.name());
+                    insertStatement.setString(2, value);
 
-                insertStatement.executeUpdate();
+                    insertStatement.executeUpdate();
+                }
             }
         } catch (final SQLException ex) {
             throw new DSyncClientException(ex);
+        } finally {
+            syncLock.unlock();
         }
     }
 

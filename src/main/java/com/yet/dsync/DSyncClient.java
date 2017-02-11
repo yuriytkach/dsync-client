@@ -48,7 +48,6 @@ public class DSyncClient {
     private LocalFolderService localFolderService;
     private DownloadService downloadService;
     private UploadService uploadService;
-    private GlobalOperationsTracker globalOperationsTracker;
     private ConfigDao configDao;
     private MetadataDao metadataDao;
 
@@ -136,6 +135,7 @@ public class DSyncClient {
 
         final String dbName = dbPathFile.getName();
 
+        @SuppressWarnings("PMD.CloseResource")
         final Connection connection = dbInit.createConnection(dbDir.getAbsolutePath(), dbName);
         if (firstRun) {
             LOG.debug("Creating database tables");
@@ -148,7 +148,7 @@ public class DSyncClient {
     }
 
     private void initServices() {
-        globalOperationsTracker = new GlobalOperationsTracker();
+        final GlobalOperationsTracker globalOperationsTracker = new GlobalOperationsTracker();
 
         localFolderService = new LocalFolderService(configDao, globalOperationsTracker);
         dropboxService = new DropboxService(configDao);

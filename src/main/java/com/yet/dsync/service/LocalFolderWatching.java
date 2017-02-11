@@ -222,6 +222,7 @@ public class LocalFolderWatching implements Runnable {
                             break;
                         default:
                             LOG.debug("Strange change type {}", changeType);
+                            break;
                     }
 
                 } catch (final InterruptedException | IOException ex) {

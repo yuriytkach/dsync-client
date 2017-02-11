@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
+import java.util.Locale;
 
 public class UploadService
         extends AbstractChangeProcessingService<LocalFolderData> {
@@ -55,10 +56,11 @@ public class UploadService
         uploadData(changeData);
     }
 
+    @SuppressWarnings("PMD.ConfusingTernary")
     private void uploadData(final LocalFolderData changeData) {
         final String dropboxPath = extractPath(changeData);
 
-        getGlobalOperationsTracker().start(dropboxPath.toLowerCase());
+        getGlobalOperationsTracker().start(dropboxPath.toLowerCase(Locale.getDefault()));
         try {
             if (!changeData.fileExists()) {
                 deleteData(dropboxPath);
@@ -77,7 +79,7 @@ public class UploadService
                 LOG.info("Uploaded to Dropbox {}", () -> dropboxPath);
             }
         } finally {
-            getGlobalOperationsTracker().stop(dropboxPath.toLowerCase());
+            getGlobalOperationsTracker().stop(dropboxPath.toLowerCase(Locale.getDefault()));
         }
     }
 
@@ -92,7 +94,8 @@ public class UploadService
 
         LOG.debug("File modified dateTime is {} for {}", lastModifiedDateTime.toString(), dropboxPath);
 
-        final DropboxFileData existingFileData = metadataDao.readByLowerPath(dropboxPath.toLowerCase());
+        final DropboxFileData existingFileData = metadataDao.
+                readByLowerPath(dropboxPath.toLowerCase(Locale.getDefault()));
         final boolean override;
         if (existingFileData == null) {
             override = false;
@@ -130,7 +133,7 @@ public class UploadService
     private void deleteData(final String dropboxPath) {
         dropboxService.deleteFile(dropboxPath);
 
-        metadataDao.deleteByLowerPath(dropboxPath.toLowerCase());
+        metadataDao.deleteByLowerPath(dropboxPath.toLowerCase(Locale.getDefault()));
     }
 
     private String extractPath(final LocalFolderData changeData) {
@@ -157,7 +160,7 @@ public class UploadService
     @Override
     protected String extractPathLower(final LocalFolderData changeData) {
         final String dropboxPath = extractPath(changeData);
-        return dropboxPath.toLowerCase();
+        return dropboxPath.toLowerCase(Locale.getDefault());
     }
 
 }

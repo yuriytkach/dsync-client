@@ -28,6 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Path;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class LocalFolderService {
 
@@ -35,6 +37,8 @@ public class LocalFolderService {
 
     private final ConfigDao configDao;
     private final GlobalOperationsTracker globalOperationsTracker;
+
+    private final Lock syncLock = new ReentrantLock(true);
 
     private File localDir;
 
@@ -44,6 +48,7 @@ public class LocalFolderService {
         this.globalOperationsTracker = globalOperationsTracker;
     }
 
+    @SuppressWarnings("PMD.SystemPrintln")
     public void setupLocalFolder() {
         System.out.print("Input local folder to use for Dropbox: ");
 
@@ -94,27 +99,30 @@ public class LocalFolderService {
     public void createFolder(final String path) {
         final File folder = new File(localDir.getAbsolutePath() + path);
 
-        if (!folder.exists()) {
-            if (!folder.mkdirs()) {
-                throw new DSyncClientException("Failed in creating directories at " + folder.getAbsolutePath());
-            }
+        if (!folder.exists() && !folder.mkdirs()) {
+            throw new DSyncClientException("Failed in creating directories at " + folder.getAbsolutePath());
         }
     }
 
-    public synchronized void deleteFileOrFolder(final String path) {
+    public void deleteFileOrFolder(final String path) {
         final File file = buildFileObject(path);
-        if (file.exists()) {
-            if (file.isDirectory()) {
-                try {
-                    FileUtils.deleteDirectory(file);
-                } catch (final Exception ex) {
-                    throw new DSyncClientException("Failed to delete directory: " + file.getAbsolutePath(), ex);
-                }
-            } else {
-                if (!file.delete()) {
-                    throw new DSyncClientException("Failed to delete file: " + file.getAbsolutePath());
+        syncLock.lock();
+        try {
+            if (file.exists()) {
+                if (file.isDirectory()) {
+                    try {
+                        FileUtils.deleteDirectory(file);
+                    } catch (final Exception ex) {
+                        throw new DSyncClientException("Failed to delete directory: " + file.getAbsolutePath(), ex);
+                    }
+                } else {
+                    if (!file.delete()) {
+                        throw new DSyncClientException("Failed to delete file: " + file.getAbsolutePath());
+                    }
                 }
             }
+        } finally {
+            syncLock.unlock();
         }
     }
 

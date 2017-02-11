@@ -14,7 +14,6 @@
 
 package com.yet.dsync.util;
 
-import com.sun.nio.file.ExtendedWatchEventModifier;
 import com.yet.dsync.exception.DSyncClientException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -59,7 +57,7 @@ public class WatcherRegisterConsumer implements Consumer<Path> {
 //                registerWatcherForFileTree(path);
 //            }
         } catch (final IOException ex) {
-            throw new DSyncClientException("Error registering path " + path);
+            throw new DSyncClientException("Error registering path " + path, ex);
         }
 
     }
@@ -97,16 +95,16 @@ public class WatcherRegisterConsumer implements Consumer<Path> {
      * @param path to directory
      * @throws IOException during watchers registration
      */
-    private void registerWatcherForFileTree(final Path path) throws IOException {
-        final WatchKey watchKey = path.register(watchService,
-                new WatchEvent.Kind[] {
-                    StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_DELETE,
-                    StandardWatchEventKinds.ENTRY_MODIFY},
-                ExtendedWatchEventModifier.FILE_TREE);
-        if (watchKeyConsumer != null) {
-            watchKeyConsumer.accept(watchKey);
-        }
-    }
+//    private void registerWatcherForFileTree(final Path path) throws IOException {
+//        final WatchKey watchKey = path.register(watchService,
+//                new WatchEvent.Kind[] {
+//                    StandardWatchEventKinds.ENTRY_CREATE,
+//                    StandardWatchEventKinds.ENTRY_DELETE,
+//                    StandardWatchEventKinds.ENTRY_MODIFY},
+//                ExtendedWatchEventModifier.FILE_TREE);
+//        if (watchKeyConsumer != null) {
+//            watchKeyConsumer.accept(watchKey);
+//        }
+//    }
 
 }

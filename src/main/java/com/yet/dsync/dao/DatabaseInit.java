@@ -52,15 +52,15 @@ public class DatabaseInit {
     }
 
     private void createConfigTable(final Connection connection) throws SQLException {
-        final Statement stmt = connection.createStatement();
-        stmt.executeUpdate(ConfigDao.CREATE_TABLE_STATEMENT);
-        stmt.close();
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(ConfigDao.CREATE_TABLE_STATEMENT);
+        }
     }
 
     private void createMetadataTable(final Connection connection) throws SQLException {
-        final Statement stmt = connection.createStatement();
-        stmt.executeUpdate(MetadataDao.CREATE_TABLE_STATEMENT);
-        stmt.close();
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate(MetadataDao.CREATE_TABLE_STATEMENT);
+        }
     }
 
 }

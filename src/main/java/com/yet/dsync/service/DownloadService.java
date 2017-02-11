@@ -28,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collection;
+import java.util.Locale;
 
 public class DownloadService
         extends AbstractChangeProcessingService<DropboxFileData> {
@@ -103,8 +104,11 @@ public class DownloadService
             fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
         } else {
             final DropboxFileData dirData = metadataDao
-                    .readByLowerPath(fileDir.toLowerCase());
-            if (dirData != null) {
+                    .readByLowerPath(fileDir.toLowerCase(Locale.getDefault()));
+            if (dirData == null) {
+                fullFilePath = dir.getAbsolutePath() + File.separator
+                        + fileName;
+            } else {
                 final String fileDisplayPath = dirData.getPathDisplay()
                         + File.separator + fileName;
 
@@ -115,9 +119,6 @@ public class DownloadService
 
                 fullFilePath = localFolderService
                         .buildFileObject(fileDisplayPath).getAbsolutePath();
-            } else {
-                fullFilePath = dir.getAbsolutePath() + File.separator
-                        + fileName;
             }
         }
 
