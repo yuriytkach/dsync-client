@@ -51,7 +51,7 @@ public class DownloadService
     }
 
     private void downloadData(final DropboxFileData fileData) {
-        globalOperationsTracker.start(fileData.getPathLower());
+        getGlobalOperationsTracker().start(fileData.getPathLower());
         try {
             if (DropboxChangeType.DELETE == fileData.getChangeType()) {
                 deleteFileOrDirectory(fileData);
@@ -61,7 +61,7 @@ public class DownloadService
                 final File file = resolveFile(fileData);
 
                 if (file.getParentFile().exists()) {
-                    try (final OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
+                    try (OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
                         dropboxService.downloadFile(fileData.getPathDisplay(), fos);
                         metadataDao.writeLoadedFlag(fileData.getId(), true);
                     } catch (final IOException ex) {
@@ -73,7 +73,7 @@ public class DownloadService
                 }
             }
         } finally {
-            globalOperationsTracker.stop(fileData.getPathLower());
+            getGlobalOperationsTracker().stop(fileData.getPathLower());
         }
     }
 

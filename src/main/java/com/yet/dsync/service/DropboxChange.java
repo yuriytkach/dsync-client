@@ -21,6 +21,6 @@ import java.util.Set;
 @FunctionalInterface
 public interface DropboxChange {
 
-    void processChange(final Set<DropboxFileData> data);
+    void processChange(Set<DropboxFileData> data);
 
 }

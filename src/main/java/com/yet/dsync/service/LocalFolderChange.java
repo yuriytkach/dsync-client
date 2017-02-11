@@ -19,6 +19,6 @@ import com.yet.dsync.dto.LocalFolderData;
 @FunctionalInterface
 public interface LocalFolderChange {
 
-    void processChange(final LocalFolderData localFolderData);
+    void processChange(LocalFolderData localFolderData);
 
 }

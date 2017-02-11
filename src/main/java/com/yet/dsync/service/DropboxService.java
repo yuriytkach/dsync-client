@@ -65,6 +65,11 @@ public class DropboxService {
     /* According to API, can't upload chunks/files more than 150MB */
     private static final long MAX_FILE_UPLOAD_CHUNK = 150 * 1024 * 1024;
 
+    private static final int MAX_RETRIES = 3;
+
+    private static final int STATUS_IO_ERROR = -1;
+    private static final int STATUS_DBX_ERROR = -2;
+
     private DbxClientV2 client;
     private DbxRequestConfig config;
     private final ConfigDao configDao;
@@ -79,15 +84,15 @@ public class DropboxService {
 
     public void createConfig() {
         final Builder configBuilder = DbxRequestConfig.newBuilder("dsyncclient");
-        config = configBuilder.withAutoRetryEnabled(3).withUserLocaleFromPreferences().build();
+        config = configBuilder.withAutoRetryEnabled(MAX_RETRIES).withUserLocaleFromPreferences().build();
     }
 
     public void authenticate() {
         loadAppKeyProvider();
-        final String APP_KEY = loadAppKey();
-        final String APP_SECRET = loadAppSecret();
+        final String appKey = loadAppKey();
+        final String appSecret = loadAppSecret();
 
-        final DbxAppInfo appInfo = new DbxAppInfo(APP_KEY, APP_SECRET);
+        final DbxAppInfo appInfo = new DbxAppInfo(appKey, appSecret);
 
         final Request request = DbxWebAuth.newRequestBuilder().withNoRedirect().build();
         final DbxWebAuth webAuth = new DbxWebAuth(config, appInfo);
@@ -106,10 +111,10 @@ public class DropboxService {
 
         } catch (final IOException ex) {
             LOG.error("IO error", ex);
-            System.exit(-1);
+            System.exit(STATUS_IO_ERROR);
         } catch (final DbxException ex) {
             LOG.error("Failed to authorize", ex);
-            System.exit(-2);
+            System.exit(STATUS_DBX_ERROR);
         }
     }
 
@@ -133,13 +138,11 @@ public class DropboxService {
     }
 
     private String loadAppSecret() {
-        final String APP_SECRET = System.getProperty("APP_SECRET", appSecretFromProvider);
-        return APP_SECRET;
+        return System.getProperty("APP_SECRET", appSecretFromProvider);
     }
 
     private String loadAppKey() {
-        final String APP_KEY = System.getProperty("APP_KEY", appKeyFromProvider);
-        return APP_KEY;
+        return System.getProperty("APP_KEY", appKeyFromProvider);
     }
 
     public void createClient() {

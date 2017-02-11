@@ -19,7 +19,9 @@ import org.apache.commons.io.FilenameUtils;
 import java.io.File;
 import java.nio.file.Path;
 
-public class PathUtil {
+public final class PathUtil {
+
+    private PathUtil() { }
 
     public static String extractDropboxPath(final String localDir, final String fullPath) {
         final String localDirNorm = FilenameUtils.normalize(localDir, true);

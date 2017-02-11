@@ -74,7 +74,7 @@ public class GlobalOperationsTracker {
 
         private final String pathLower;
 
-        public RemoveTrackingThread(final String pathLower) {
+        RemoveTrackingThread(final String pathLower) {
             this.pathLower = pathLower;
         }
 

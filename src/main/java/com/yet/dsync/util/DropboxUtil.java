@@ -26,7 +26,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 
-public class DropboxUtil {
+public final class DropboxUtil {
+
+    private DropboxUtil() { }
 
     public static DropboxFileData convertMetadata(final Metadata metadata) {
         final DropboxFileData.Builder builder = new Builder();

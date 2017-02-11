@@ -363,7 +363,7 @@ public class LocalFolderWatching implements Runnable {
 
         private boolean firstEqualCheckDone;
 
-        public FileChangeData(final LocalFolderChangeType changeType, final Long size) {
+        FileChangeData(final LocalFolderChangeType changeType, final Long size) {
             this.changeType = changeType;
             this.size = size;
         }

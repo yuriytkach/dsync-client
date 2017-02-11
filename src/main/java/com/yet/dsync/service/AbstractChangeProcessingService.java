@@ -36,7 +36,9 @@ public abstract class AbstractChangeProcessingService<T> {
 
     private static final long SLOW_THRESHOLD = 256 * 1024; // 256KB
 
-    protected final GlobalOperationsTracker globalOperationsTracker;
+    private static final int PROCESSING_QUEUE_CAPACITY = 100;
+
+    private final GlobalOperationsTracker globalOperationsTracker;
 
     private final Comparator<? super T> changeComparator = (a, b) -> {
         if (!isFile(a) && isFile(b)) {
@@ -63,8 +65,8 @@ public abstract class AbstractChangeProcessingService<T> {
                                            final GlobalOperationsTracker globalOperationsTracker) {
         this.globalOperationsTracker = globalOperationsTracker;
 
-        this.slowProcessingQueue = createDownloadQueue(changeComparator);
-        this.quickProcessingQueue = createDownloadQueue(changeComparator);
+        this.slowProcessingQueue = createProcessingQueue(changeComparator);
+        this.quickProcessingQueue = createProcessingQueue(changeComparator);
 
         final ThreadFactory namedThreadFactory = new ThreadFactoryBuilder()
                 .setNameFormat(processingThreadName + "-%d").build();
@@ -83,9 +85,9 @@ public abstract class AbstractChangeProcessingService<T> {
      * another will handle only big files. For now, we make priority in the
      * following way: folders, small files, big files;
      */
-    private BlockingQueue<T> createDownloadQueue(
+    private BlockingQueue<T> createProcessingQueue(
             final Comparator<? super T> changeComparator) {
-        return new PriorityBlockingQueue<T>(100, changeComparator);
+        return new PriorityBlockingQueue<T>(PROCESSING_QUEUE_CAPACITY, changeComparator);
     }
 
     private void initDownloadThreads() {
@@ -98,15 +100,19 @@ public abstract class AbstractChangeProcessingService<T> {
         }
     }
 
-    protected abstract void processChange(final T changeData);
+    protected abstract void processChange(T changeData);
 
-    protected abstract boolean isFile(final T changeData);
+    protected abstract boolean isFile(T changeData);
 
-    protected abstract boolean isDeleteData(final T changeData);
+    protected abstract boolean isDeleteData(T changeData);
 
-    protected abstract long getFileSize(final T changeData);
+    protected abstract long getFileSize(T changeData);
 
-    protected abstract String extractPathLower(final T changeData);
+    protected abstract String extractPathLower(T changeData);
+
+    public GlobalOperationsTracker getGlobalOperationsTracker() {
+        return globalOperationsTracker;
+    }
 
     /**
      * If the changeData is file, then scheduling it either in quick or slow
@@ -148,7 +154,7 @@ public abstract class AbstractChangeProcessingService<T> {
 
         private final BlockingQueue<T> queue;
 
-        public ProcessingThread(final BlockingQueue<T> queue) {
+        ProcessingThread(final BlockingQueue<T> queue) {
             this.queue = queue;
         }
 

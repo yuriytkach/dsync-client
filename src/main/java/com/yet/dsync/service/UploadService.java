@@ -58,7 +58,7 @@ public class UploadService
     private void uploadData(final LocalFolderData changeData) {
         final String dropboxPath = extractPath(changeData);
 
-        globalOperationsTracker.start(dropboxPath.toLowerCase());
+        getGlobalOperationsTracker().start(dropboxPath.toLowerCase());
         try {
             if (!changeData.fileExists()) {
                 deleteData(dropboxPath);
@@ -77,7 +77,7 @@ public class UploadService
                 LOG.info("Uploaded to Dropbox {}", () -> dropboxPath);
             }
         } finally {
-            globalOperationsTracker.stop(dropboxPath.toLowerCase());
+            getGlobalOperationsTracker().stop(dropboxPath.toLowerCase());
         }
     }
 
@@ -105,7 +105,7 @@ public class UploadService
             LOG.debug("Existing file info is found and serverModified is later for {}", () -> dropboxPath);
         }
 
-        try (final InputStream is = new BufferedInputStream(
+        try (InputStream is = new BufferedInputStream(
                 new FileInputStream(file))) {
 
             final DropboxFileData fileData = dropboxService.uploadFile(dropboxPath,

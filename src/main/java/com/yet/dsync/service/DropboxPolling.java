@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class DropboxPolling implements Runnable {
 
     private static final Logger LOG = LogManager.getLogger(DropboxPolling.class);
+    private static final int MILLI_SEC = 1000;
 
     private final DbxClientV2 client;
     private final ConfigDao configDao;
@@ -82,7 +83,7 @@ public class DropboxPolling implements Runnable {
                                 final Long backoff = listFolderLongpollResult.getBackoff();
                                 if (backoff != null) {
                                     try {
-                                        Thread.sleep(backoff * 1000);
+                                        Thread.sleep(backoff * MILLI_SEC);
                                     } catch (final InterruptedException ex) {
                                         LOG.error("Interrupted", ex);
                                     }

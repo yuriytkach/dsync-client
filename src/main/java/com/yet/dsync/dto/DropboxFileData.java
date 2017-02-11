@@ -16,7 +16,7 @@ package com.yet.dsync.dto;
 
 import java.time.LocalDateTime;
 
-public class DropboxFileData {
+public final class DropboxFileData {
 
     private final DropboxChangeType changeType;
 

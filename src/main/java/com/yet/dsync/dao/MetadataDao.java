@@ -73,6 +73,14 @@ public class MetadataDao {
     private static final int COL_SRVDATE = COL_SIZE + 1;
     private static final int COL_CLIDATE = COL_SRVDATE + 1;
 
+    private static final int UPD_PARAM_PATH = 1;
+    private static final int UPD_PARAM_PATH_LOWER = UPD_PARAM_PATH + 1;
+    private static final int UPD_PARAM_REV = UPD_PARAM_PATH_LOWER + 1;
+    private static final int UPD_PARAM_SIZE = UPD_PARAM_REV + 1;
+    private static final int UPD_PARAM_SRVDATE = UPD_PARAM_SIZE + 1;
+    private static final int UPD_PARAM_CLIDATE = UPD_PARAM_SRVDATE + 1;
+    private static final int UPD_PARAM_ID = UPD_PARAM_CLIDATE + 1;
+
     private final PreparedStatement readByIdStatement;
     private final PreparedStatement readNotLoadedStatement;
     private final PreparedStatement readByPLowerStatement;
@@ -145,16 +153,16 @@ public class MetadataDao {
 
             final ResultSet resultSet = readByIdStatement.executeQuery();
             if (resultSet.next()) {
-                updateFieldsStatement.setString(1, fileData.getPathDisplay());
-                updateFieldsStatement.setString(2, fileData.getPathLower());
-                setStatementParams(updateFieldsStatement, 3, fileData.getRev(), Types.VARCHAR);
-                setStatementParams(updateFieldsStatement, 4, fileData.getSize(), Types.BIGINT);
-                setStatementParams(updateFieldsStatement, 5,
+                updateFieldsStatement.setString(UPD_PARAM_PATH, fileData.getPathDisplay());
+                updateFieldsStatement.setString(UPD_PARAM_PATH_LOWER, fileData.getPathLower());
+                setStatementParams(updateFieldsStatement, UPD_PARAM_REV, fileData.getRev(), Types.VARCHAR);
+                setStatementParams(updateFieldsStatement, UPD_PARAM_SIZE, fileData.getSize(), Types.BIGINT);
+                setStatementParams(updateFieldsStatement, UPD_PARAM_SRVDATE,
                         dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
-                setStatementParams(updateFieldsStatement, 6,
+                setStatementParams(updateFieldsStatement, UPD_PARAM_CLIDATE,
                         dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
 
-                updateFieldsStatement.setString(6, fileData.getId());
+                updateFieldsStatement.setString(UPD_PARAM_ID, fileData.getId());
 
             } else {
                 fillInsertStatement(fileData);
