@@ -32,13 +32,25 @@ import java.util.Set;
 
 public class MetadataDao {
 
+    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE METADATA ("
+            + "ID       TEXT PRIMARY KEY  NOT NULL,"
+            + "PATH     TEXT              NOT NULL,"
+            + "PLOWER   TEXT              NOT NULL,"
+            + "LOADED   INTEGER           NOT NULL,"
+            + "REV      TEXT,"
+            + "SIZE     INTEGER,"
+            + "SRVDATE  INTEGER,"
+            + "CLIDATE  INTEGER"
+            + ")";
+
     private static final String SELECT_BY_ID_STATEMENT = "SELECT * FROM METADATA WHERE ID = ?";
 
     private static final String SELECT_NOT_LOADED_STATEMENT = "SELECT * FROM METADATA WHERE LOADED = 0";
 
     private static final String SELECT_BY_PLOWER_STATEMENT = "SELECT * FROM METADATA WHERE PLOWER = ?";
 
-    private static final String INSERT_STATEMENT = "INSERT INTO METADATA (ID,PATH,PLOWER,LOADED,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?,?,?)";
+    private static final String INSERT_STATEMENT = "INSERT INTO METADATA ("
+            + "ID,PATH,PLOWER,LOADED,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?,?,?)";
 
     private static final String UPDATE_LOADED_STATEMENT = "UPDATE METADATA SET LOADED = ? WHERE ID = ?";
 
@@ -52,25 +64,14 @@ public class MetadataDao {
 
     private static final String DELETE_BY_PATH_STATEMENT = "DELETE FROM METADATA WHERE PLOWER = ?";
 
-    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE METADATA (" +
-                                                            "ID       TEXT PRIMARY KEY  NOT NULL," +
-                                                            "PATH     TEXT              NOT NULL," +
-                                                            "PLOWER   TEXT              NOT NULL," +
-                                                            "LOADED   INTEGER           NOT NULL," +
-                                                            "REV      TEXT," +
-                                                            "SIZE     INTEGER," +
-                                                            "SRVDATE  INTEGER," +
-                                                            "CLIDATE  INTEGER" +
-                                                            ")";
-
     private static final int COL_ID = 1;
-    private static final int COL_PATH = COL_ID+1;
-    private static final int COL_PATH_LOWER = COL_PATH+1;
-    private static final int COL_LOADED = COL_PATH_LOWER+1;
-    private static final int COL_REV = COL_LOADED+1;
-    private static final int COL_SIZE = COL_REV+1;
-    private static final int COL_SRVDATE = COL_SIZE+1;
-    private static final int COL_CLIDATE = COL_SRVDATE+1;
+    private static final int COL_PATH = COL_ID + 1;
+    private static final int COL_PATH_LOWER = COL_PATH + 1;
+    private static final int COL_LOADED = COL_PATH_LOWER + 1;
+    private static final int COL_REV = COL_LOADED + 1;
+    private static final int COL_SIZE = COL_REV + 1;
+    private static final int COL_SRVDATE = COL_SIZE + 1;
+    private static final int COL_CLIDATE = COL_SRVDATE + 1;
 
     private final PreparedStatement readByIdStatement;
     private final PreparedStatement readNotLoadedStatement;
@@ -89,8 +90,8 @@ public class MetadataDao {
             updateLoadedStatement = connection.prepareStatement(UPDATE_LOADED_STATEMENT);
             updateFieldsStatement = connection.prepareStatement(UPDATE_FIELDS_STATEMENT);
             deleteByPathStatement = connection.prepareStatement(DELETE_BY_PATH_STATEMENT);
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -104,8 +105,8 @@ public class MetadataDao {
             } else {
                 return null;
             }
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -119,8 +120,8 @@ public class MetadataDao {
             } else {
                 return null;
             }
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -148,8 +149,10 @@ public class MetadataDao {
                 updateFieldsStatement.setString(2, fileData.getPathLower());
                 setStatementParams(updateFieldsStatement, 3, fileData.getRev(), Types.VARCHAR);
                 setStatementParams(updateFieldsStatement, 4, fileData.getSize(), Types.BIGINT);
-                setStatementParams(updateFieldsStatement, 5, dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
-                setStatementParams(updateFieldsStatement, 6, dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
+                setStatementParams(updateFieldsStatement, 5,
+                        dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
+                setStatementParams(updateFieldsStatement, 6,
+                        dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
 
                 updateFieldsStatement.setString(6, fileData.getId());
 
@@ -158,8 +161,8 @@ public class MetadataDao {
 
                 insertStatement.executeUpdate();
             }
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -181,16 +184,16 @@ public class MetadataDao {
                 try {
                     fillInsertStatement(fileData);
                     insertStatement.addBatch();
-                } catch (SQLException e) {
-                    throw new DSyncClientException(e);
+                } catch (final SQLException ex) {
+                    throw new DSyncClientException(ex);
                 }
 
             });
 
             insertStatement.executeBatch();
 
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -206,8 +209,8 @@ public class MetadataDao {
             }
 
             return allFileData;
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -217,8 +220,8 @@ public class MetadataDao {
             updateLoadedStatement.setString(2, id);
 
             updateLoadedStatement.executeUpdate();
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -227,8 +230,8 @@ public class MetadataDao {
             deleteByPathStatement.setString(1, pathLower);
 
             deleteByPathStatement.executeUpdate();
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 

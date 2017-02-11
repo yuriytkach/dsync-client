@@ -36,6 +36,8 @@ public abstract class AbstractChangeProcessingService<T> {
 
     private static final long SLOW_THRESHOLD = 256 * 1024; // 256KB
 
+    protected final GlobalOperationsTracker globalOperationsTracker;
+
     private final Comparator<? super T> changeComparator = (a, b) -> {
         if (!isFile(a) && isFile(b)) {
             return -1;
@@ -56,8 +58,6 @@ public abstract class AbstractChangeProcessingService<T> {
     private final BlockingQueue<T> slowProcessingQueue;
 
     private final ExecutorService executorService;
-
-    protected final GlobalOperationsTracker globalOperationsTracker;
 
     public AbstractChangeProcessingService(final String processingThreadName,
                                            final GlobalOperationsTracker globalOperationsTracker) {
@@ -121,7 +121,7 @@ public abstract class AbstractChangeProcessingService<T> {
         final String pathLower = extractPathLower(changeData);
 
         if (globalOperationsTracker.isTracked(pathLower)) {
-            LOG.debug("Path is already tracked. Skip: {}", ()->pathLower);
+            LOG.debug("Path is already tracked. Skip: {}", () -> pathLower);
         } else {
             try {
                 if (isFile(changeData)) {
@@ -134,8 +134,8 @@ public abstract class AbstractChangeProcessingService<T> {
                 } else {
                     quickProcessingQueue.put(changeData);
                 }
-            } catch (Exception e) {
-                throw new DSyncClientException(e);
+            } catch (final Exception ex) {
+                throw new DSyncClientException(ex);
             }
         }
     }
@@ -158,8 +158,8 @@ public abstract class AbstractChangeProcessingService<T> {
                 try {
                     final T changeData = queue.take();
                     processChange(changeData);
-                } catch (Exception e) {
-                    LOG.error("Failed to process changeData", e);
+                } catch (final Exception ex) {
+                    LOG.error("Failed to process changeData", ex);
                 }
             }
         }

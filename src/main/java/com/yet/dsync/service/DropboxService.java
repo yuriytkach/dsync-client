@@ -44,6 +44,7 @@ import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -103,11 +104,11 @@ public class DropboxService {
             final DbxAuthFinish finish = webAuth.finishFromCode(code);
             configDao.write(Config.ACCESS_TOKEN, finish.getAccessToken());
 
-        } catch (IOException e) {
-            LOG.error("IO error", e);
+        } catch (final IOException ex) {
+            LOG.error("IO error", ex);
             System.exit(-1);
-        } catch (DbxException e) {
-            LOG.error("Failed to authorize", e);
+        } catch (final DbxException ex) {
+            LOG.error("Failed to authorize", ex);
             System.exit(-2);
         }
     }
@@ -122,11 +123,11 @@ public class DropboxService {
             final Method getKeyMethod = clazz.getDeclaredMethod("getKey");
             final Method getSecretMethod = clazz.getDeclaredMethod("getSecret");
 
-            this.appKeyFromProvider = (String)getKeyMethod.invoke(obj);
-            this.appSecretFromProvider = (String)getSecretMethod.invoke(obj);
+            this.appKeyFromProvider = (String) getKeyMethod.invoke(obj);
+            this.appSecretFromProvider = (String) getSecretMethod.invoke(obj);
 
             LOG.debug("Got key and secret from key provider");
-        } catch (Exception e) {
+        } catch (final Exception ex) {
             LOG.debug("DSyncClientKeyProvider class not found");
         }
     }
@@ -148,11 +149,12 @@ public class DropboxService {
 
     public String retrieveLatestCursor() {
         try {
-            final ListFolderGetLatestCursorResult result = client.files().listFolderGetLatestCursorBuilder("")
+            final ListFolderGetLatestCursorResult result = client.files()
+                    .listFolderGetLatestCursorBuilder(StringUtils.EMPTY)
                     .withRecursive(Boolean.TRUE).start();
             return result.getCursor();
-        } catch (DbxException e) {
-            throw new DSyncClientException(e);
+        } catch (final DbxException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -166,8 +168,8 @@ public class DropboxService {
             final long availBytes = space.getAllocation().getIndividualValue().getAllocated();
 
             return new UserData(username, usedBytes, availBytes);
-        } catch (DbxException e) {
-            throw new DSyncClientException(e);
+        } catch (final DbxException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -176,14 +178,15 @@ public class DropboxService {
     }
 
     public Runnable createInitialSyncThread(final DropboxChange changeListener) {
-        return ()-> {
+        return () -> {
             try {
                 String cursor = configDao.read(Config.CURSOR);
                 ListFolderResult listFolderResult = null;
 
                 if (cursor.isEmpty()) {
-                    listFolderResult = client.files().listFolderBuilder("")
-                        .withRecursive(Boolean.TRUE).start();
+                    listFolderResult = client.files()
+                            .listFolderBuilder(StringUtils.EMPTY)
+                            .withRecursive(Boolean.TRUE).start();
 
                     final Set<DropboxFileData> fileDataSet = listFolderResult.getEntries().stream()
                             .map(DropboxUtil::convertMetadata)
@@ -208,8 +211,8 @@ public class DropboxService {
                     configDao.write(Config.CURSOR, cursor);
                 }
 
-            } catch (Exception e) {
-                LOG.error("Failed in initial sync", e);
+            } catch (final Exception ex) {
+                LOG.error("Failed in initial sync", ex);
             }
         };
     }
@@ -219,7 +222,7 @@ public class DropboxService {
             final DbxDownloader<FileMetadata> downloader = client.files().download(path);
 
             downloader.download(outputStream);
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             LOG.error("Failed to download from Dropbox: " + path, ex);
             throw new DSyncClientException(ex);
         }
@@ -228,16 +231,16 @@ public class DropboxService {
     public void deleteFile(final String dropboxPath) {
         try {
             client.files().delete(dropboxPath);
-        } catch (DeleteErrorException ex) {
+        } catch (final DeleteErrorException ex) {
             if (ex.errorValue.getPathLookupValue().isNotFound()) {
-                LOG.warn("Didn't delete, because path was not found on server: {}", ()->dropboxPath);
+                LOG.warn("Didn't delete, because path was not found on server: {}", () -> dropboxPath);
             } else {
                 LOG.error("Failed to delete from Dropbox: " + dropboxPath, ex);
                 throw new DSyncClientException(ex);
             }
-        } catch (DbxException e) {
-            LOG.error("Failed to delete from Dropbox: " + dropboxPath, e);
-            throw new DSyncClientException(e);
+        } catch (final DbxException ex) {
+            LOG.error("Failed to delete from Dropbox: " + dropboxPath, ex);
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -245,9 +248,9 @@ public class DropboxService {
         try {
             final Metadata metadata = client.files().createFolder(dropboxPath);
             return DropboxUtil.convertMetadata(metadata);
-        } catch (DbxException e) {
-            LOG.error("Failed to create folder in Dropbox: " + dropboxPath, e);
-            throw new DSyncClientException(e);
+        } catch (final DbxException ex) {
+            LOG.error("Failed to create folder in Dropbox: " + dropboxPath, ex);
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -260,8 +263,8 @@ public class DropboxService {
 
             final Metadata metadata;
 
-            int chunks = (int)(size / MAX_FILE_UPLOAD_CHUNK);
-            if (chunks*MAX_FILE_UPLOAD_CHUNK <= size) {
+            int chunks = (int) (size / MAX_FILE_UPLOAD_CHUNK);
+            if (chunks * MAX_FILE_UPLOAD_CHUNK <= size) {
                 chunks += 1;
             }
 
@@ -279,31 +282,37 @@ public class DropboxService {
             } else {
                 LOG.debug("Chunk upload (1 of {}) for {}", chunks, dropboxPath);
                 final UploadSessionStartUploader startUploader = client.files().uploadSessionStart();
-                final UploadSessionStartResult startResult = startUploader.uploadAndFinish(inputStream, MAX_FILE_UPLOAD_CHUNK);
+                final UploadSessionStartResult startResult = startUploader
+                        .uploadAndFinish(inputStream, MAX_FILE_UPLOAD_CHUNK);
                 int chunksUploaded = 1;
 
                 final String sessionId = startResult.getSessionId();
 
-                while ( chunksUploaded < (chunks-1) ) {
-                    LOG.debug("Chunk upload ({} of {}) for {}", chunksUploaded+1, chunks, dropboxPath);
-                    final UploadSessionCursor cursor = new UploadSessionCursor(sessionId, chunksUploaded*MAX_FILE_UPLOAD_CHUNK);
-                    final UploadSessionAppendV2Uploader appendUploader = client.files().uploadSessionAppendV2(cursor);
+                while (chunksUploaded < (chunks - 1)) {
+                    LOG.debug("Chunk upload ({} of {}) for {}", chunksUploaded + 1, chunks, dropboxPath);
+                    final UploadSessionCursor cursor = new UploadSessionCursor(
+                            sessionId, chunksUploaded * MAX_FILE_UPLOAD_CHUNK);
+                    final UploadSessionAppendV2Uploader appendUploader = client.files()
+                            .uploadSessionAppendV2(cursor);
                     appendUploader.uploadAndFinish(inputStream, MAX_FILE_UPLOAD_CHUNK);
                     chunksUploaded++;
                 }
 
-                LOG.debug("Chunk upload ({} of {}) for {}", chunksUploaded+1, chunks, dropboxPath);
-                final UploadSessionCursor cursor = new UploadSessionCursor(sessionId, chunksUploaded*MAX_FILE_UPLOAD_CHUNK);
-                final CommitInfo commitInfo = new CommitInfo(dropboxPath, writeMode, autoRename, lastModified, false);
-                final UploadSessionFinishUploader finishUploader = client.files().uploadSessionFinish(cursor, commitInfo);
+                LOG.debug("Chunk upload ({} of {}) for {}", chunksUploaded + 1, chunks, dropboxPath);
+                final UploadSessionCursor cursor = new UploadSessionCursor(
+                        sessionId, chunksUploaded * MAX_FILE_UPLOAD_CHUNK);
+                final CommitInfo commitInfo = new CommitInfo(dropboxPath, writeMode,
+                        autoRename, lastModified, false);
+                final UploadSessionFinishUploader finishUploader = client.files()
+                        .uploadSessionFinish(cursor, commitInfo);
                 metadata = finishUploader.uploadAndFinish(inputStream);
 
-                LOG.debug("Upload completed for {}", ()-> dropboxPath);
+                LOG.debug("Upload completed for {}", () -> dropboxPath);
             }
 
             return DropboxUtil.convertMetadata(metadata);
 
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             LOG.error("Failed to upload file to Dropbox: " + dropboxPath, ex);
             throw new DSyncClientException(ex);
         }

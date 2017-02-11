@@ -18,80 +18,6 @@ import java.time.LocalDateTime;
 
 public class DropboxFileData {
 
-    public static class Builder {
-        private DropboxChangeType changeType;
-
-        private String pathDisplay;
-
-        private String pathLower;
-
-        private String id;
-
-        private String rev;
-
-        private Long size;
-
-        private LocalDateTime serverModified;
-
-        private LocalDateTime clientModified;
-
-        public Builder changeType(final DropboxChangeType changeType) {
-            this.changeType = changeType;
-            return this;
-        }
-
-        public Builder pathDisplay(final String pathDisplay) {
-            this.pathDisplay = pathDisplay;
-            return this;
-        }
-
-        public Builder pathLower(final String pathLower) {
-            this.pathLower = pathLower;
-            return this;
-        }
-
-        public Builder id(final String id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder rev(final String rev) {
-            this.rev = rev;
-            return this;
-        }
-
-        public Builder size(final Long size) {
-            this.size = size;
-            return this;
-        }
-
-        public Builder serverModified(final LocalDateTime serverModified) {
-            this.serverModified = serverModified;
-            return this;
-        }
-
-        public Builder clientModified(final LocalDateTime clientModified) {
-            this.clientModified = clientModified;
-            return this;
-        }
-
-        public Builder init(final DropboxFileData fileData) {
-            this.changeType = fileData.changeType;
-            this.clientModified = fileData.clientModified;
-            this.id = fileData.id;
-            this.pathDisplay = fileData.pathDisplay;
-            this.pathLower = fileData.pathLower;
-            this.rev = fileData.rev;
-            this.serverModified = fileData.serverModified;
-            this.size = fileData.size;
-            return this;
-        }
-
-        public DropboxFileData build() {
-            return new DropboxFileData(this);
-        }
-    }
-
     private final DropboxChangeType changeType;
 
     private final String pathDisplay;
@@ -166,13 +92,85 @@ public class DropboxFileData {
         if (DropboxChangeType.FOLDER == changeType) {
             str += ", id: " + id;
         } else if (DropboxChangeType.FILE == changeType) {
-            str += ", id: " + id + ", rev: " + rev + ", size: " + size + ", client: " + clientModified + ", server: " + serverModified;
+            str += ", id: " + id + ", rev: " + rev + ", size: " + size
+                    + ", client: " + clientModified + ", server: " + serverModified;
         }
 
         str += "]";
         return str;
     }
 
+    public static class Builder {
+        private DropboxChangeType changeType;
 
+        private String pathDisplay;
 
+        private String pathLower;
+
+        private String id;
+
+        private String rev;
+
+        private Long size;
+
+        private LocalDateTime serverModified;
+
+        private LocalDateTime clientModified;
+
+        public Builder changeType(final DropboxChangeType changeType) {
+            this.changeType = changeType;
+            return this;
+        }
+
+        public Builder pathDisplay(final String pathDisplay) {
+            this.pathDisplay = pathDisplay;
+            return this;
+        }
+
+        public Builder pathLower(final String pathLower) {
+            this.pathLower = pathLower;
+            return this;
+        }
+
+        public Builder id(final String id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder rev(final String rev) {
+            this.rev = rev;
+            return this;
+        }
+
+        public Builder size(final Long size) {
+            this.size = size;
+            return this;
+        }
+
+        public Builder serverModified(final LocalDateTime serverModified) {
+            this.serverModified = serverModified;
+            return this;
+        }
+
+        public Builder clientModified(final LocalDateTime clientModified) {
+            this.clientModified = clientModified;
+            return this;
+        }
+
+        public Builder init(final DropboxFileData fileData) {
+            this.changeType = fileData.changeType;
+            this.clientModified = fileData.clientModified;
+            this.id = fileData.id;
+            this.pathDisplay = fileData.pathDisplay;
+            this.pathLower = fileData.pathLower;
+            this.rev = fileData.rev;
+            this.serverModified = fileData.serverModified;
+            this.size = fileData.size;
+            return this;
+        }
+
+        public DropboxFileData build() {
+            return new DropboxFileData(this);
+        }
+    }
 }

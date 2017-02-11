@@ -72,7 +72,8 @@ public class DropboxPolling implements Runnable {
 
                     while (!changes) {
                         try {
-                            final ListFolderLongpollResult listFolderLongpollResult = client.files().listFolderLongpoll(cursor);
+                            final ListFolderLongpollResult listFolderLongpollResult = client
+                                    .files().listFolderLongpoll(cursor);
 
                             changes = listFolderLongpollResult.getChanges();
 
@@ -82,21 +83,21 @@ public class DropboxPolling implements Runnable {
                                 if (backoff != null) {
                                     try {
                                         Thread.sleep(backoff * 1000);
-                                    } catch (InterruptedException e1) {
-                                        LOG.error("Interrupted", e1);
+                                    } catch (final InterruptedException ex) {
+                                        LOG.error("Interrupted", ex);
                                     }
                                 }
                             }
-                        } catch (Exception e) {
-                            LOG.warn("Failed during long poll: {}", e.getMessage());
+                        } catch (final Exception ex) {
+                            LOG.warn("Failed during long poll: {}", ex.getMessage());
                             LOG.warn("Retrying long poll");
                         }
                     }
                     listFolderResult = client.files().listFolderContinue(cursor);
                 }
             }
-        } catch (DbxException e1) {
-            LOG.error("Dropbox polling error", e1);
+        } catch (final DbxException ex) {
+            LOG.error("Dropbox polling error", ex);
         }
     }
 

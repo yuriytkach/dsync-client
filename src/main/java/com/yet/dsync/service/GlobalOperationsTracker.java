@@ -82,7 +82,7 @@ public class GlobalOperationsTracker {
         public void run() {
             trackMap.remove(pathLower);
             LOG.trace("Competely removed path from global tracking: {}",
-                    () -> pathLower);
+                () -> pathLower);
         }
 
     }

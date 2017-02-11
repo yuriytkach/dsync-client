@@ -16,6 +16,7 @@ package com.yet.dsync.dao;
 
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,17 +25,17 @@ import java.sql.SQLException;
 
 public class ConfigDao {
 
+    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE CONFIG ("
+            + "KEY    TEXT PRIMARY KEY  NOT NULL,"
+            + "VALUE  TEXT              NOT NULL"
+            + ")";
+
     public static final String YES = "yes";
     public static final String NO = "no";
 
     private static final String SELECT_STATEMENT = "SELECT VALUE FROM CONFIG WHERE KEY = ?";
     private static final String INSERT_STATEMENT = "INSERT INTO CONFIG (KEY,VALUE) VALUES (?,?)";
     private static final String UPDATE_STATEMENT = "UPDATE CONFIG SET VALUE = ? WHERE KEY = ?";
-
-    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE CONFIG (" +
-                                                            "KEY    TEXT PRIMARY KEY  NOT NULL," +
-                                                            "VALUE  TEXT              NOT NULL" +
-                                                            ")";
 
     private final PreparedStatement readStatement;
     private final PreparedStatement insertStatement;
@@ -45,8 +46,8 @@ public class ConfigDao {
             readStatement = connection.prepareStatement(SELECT_STATEMENT);
             insertStatement = connection.prepareStatement(INSERT_STATEMENT);
             updateStatement = connection.prepareStatement(UPDATE_STATEMENT);
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -58,10 +59,10 @@ public class ConfigDao {
             if (resultSet.next()) {
                 return resultSet.getString(1);
             } else {
-                return "";
+                return StringUtils.EMPTY;
             }
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -81,8 +82,8 @@ public class ConfigDao {
 
                 insertStatement.executeUpdate();
             }
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 

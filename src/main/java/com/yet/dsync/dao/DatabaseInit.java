@@ -29,16 +29,16 @@ public class DatabaseInit {
     public DatabaseInit() {
         try {
             Class.forName("org.sqlite.JDBC");
-        } catch (ClassNotFoundException e) {
-            throw new DSyncClientException(e);
+        } catch (final ClassNotFoundException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
     public Connection createConnection(final String dbFolder, final String dbName) {
         try {
             return DriverManager.getConnection(JDBC_PREFIX + dbFolder + File.separator + dbName);
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -46,8 +46,8 @@ public class DatabaseInit {
         try {
             createConfigTable(connection);
             createMetadataTable(connection);
-        } catch (SQLException e) {
-            throw new DSyncClientException(e);
+        } catch (final SQLException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 

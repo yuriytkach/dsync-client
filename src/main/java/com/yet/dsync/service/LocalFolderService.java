@@ -68,8 +68,8 @@ public class LocalFolderService {
             } else {
                 System.out.println("FAILED to create directory");
             }
-        } catch (IOException e) {
-            throw new DSyncClientException(e);
+        } catch (final IOException ex) {
+            throw new DSyncClientException(ex);
         }
     }
 
@@ -81,21 +81,21 @@ public class LocalFolderService {
         }
 
         localDir = new File(localDirPath);
-        if ( ! localDir.exists() ) {
-            LOG.info("Local folder does not exist: {}", ()->localDir.getAbsolutePath());
+        if (!localDir.exists()) {
+            LOG.info("Local folder does not exist: {}", () -> localDir.getAbsolutePath());
             setupLocalFolder();
             localDirPath = configDao.read(Config.LOCAL_DIR);
             localDir = new File(localDirPath);
         }
 
-        LOG.debug("Local folder: {}", ()->localDir.getAbsolutePath());
+        LOG.debug("Local folder: {}", () -> localDir.getAbsolutePath());
     }
 
     public void createFolder(final String path) {
         final File folder = new File(localDir.getAbsolutePath() + path);
 
-        if ( ! folder.exists() ) {
-            if ( ! folder.mkdirs() ) {
+        if (!folder.exists()) {
+            if (!folder.mkdirs()) {
                 throw new DSyncClientException("Failed in creating directories at " + folder.getAbsolutePath());
             }
         }
@@ -107,11 +107,11 @@ public class LocalFolderService {
             if (file.isDirectory()) {
                 try {
                     FileUtils.deleteDirectory(file);
-                } catch (Exception e) {
-                    throw new DSyncClientException("Failed to delete directory: " + file.getAbsolutePath(), e);
+                } catch (final Exception ex) {
+                    throw new DSyncClientException("Failed to delete directory: " + file.getAbsolutePath(), ex);
                 }
             } else {
-                if ( !file.delete() ) {
+                if (!file.delete()) {
                     throw new DSyncClientException("Failed to delete file: " + file.getAbsolutePath());
                 }
             }

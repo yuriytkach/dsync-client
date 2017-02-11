@@ -64,8 +64,8 @@ public class DownloadService
                     try (final OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
                         dropboxService.downloadFile(fileData.getPathDisplay(), fos);
                         metadataDao.writeLoadedFlag(fileData.getId(), true);
-                    } catch (IOException e) {
-                        throw new DSyncClientException(e);
+                    } catch (final IOException ex) {
+                        throw new DSyncClientException(ex);
                     }
                     LOG.info("Downloaded {}", () -> fileData.getPathDisplay());
                 } else {
@@ -127,7 +127,7 @@ public class DownloadService
     public void downloadAllNotLoaded() {
         final Collection<DropboxFileData> allNotLoaded = metadataDao.readAllNotLoaded();
         LOG.debug("Downloading {} objects that are not loaded..",
-                () -> allNotLoaded.size());
+            () -> allNotLoaded.size());
         allNotLoaded.forEach(this::scheduleProcessing);
     }
 

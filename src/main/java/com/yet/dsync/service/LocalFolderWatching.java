@@ -86,8 +86,8 @@ public class LocalFolderWatching implements Runnable {
 
         try {
             this.watchService = FileSystems.getDefault().newWatchService();
-        } catch (IOException e) {
-            throw new DSyncClientException(e);
+        } catch (final IOException ex) {
+            throw new DSyncClientException(ex);
         }
 
         watcherConsumer = new WatcherRegisterConsumer(watchService, key -> {
@@ -128,8 +128,8 @@ public class LocalFolderWatching implements Runnable {
                 final WatchKey key;
                 try {
                     key = watchService.take();
-                } catch (InterruptedException e) {
-                    LOG.error("Interrupted", e);
+                } catch (final InterruptedException ex) {
+                    LOG.error("Interrupted", ex);
                     continue;
                 }
 
@@ -140,8 +140,8 @@ public class LocalFolderWatching implements Runnable {
                 }
 
                 key.pollEvents()
-                        .stream().filter(
-                                e -> (e.kind() != StandardWatchEventKinds.OVERFLOW))
+                        .stream()
+                        .filter(e -> e.kind() != StandardWatchEventKinds.OVERFLOW)
                         .forEach(e -> {
                             @SuppressWarnings("unchecked")
                             final WatchEvent<Path> event = (WatchEvent<Path>) e;
@@ -165,8 +165,8 @@ public class LocalFolderWatching implements Runnable {
             LOG.debug("Closing watchService");
             watchService.close();
 
-        } catch (IOException e) {
-            LOG.debug("Error in local watcher", e);
+        } catch (final IOException ex) {
+            LOG.debug("Error in local watcher", ex);
         }
     }
 
@@ -186,8 +186,8 @@ public class LocalFolderWatching implements Runnable {
 
             try {
                 localPathChanges.put(localPathChange);
-            } catch (Exception e1) {
-                LOG.error("Interrupted", e1);
+            } catch (final Exception ex) {
+                LOG.error("Interrupted", ex);
             }
         }
     }
@@ -211,19 +211,21 @@ public class LocalFolderWatching implements Runnable {
                             .getChangeType();
 
                     switch (changeType) {
-                    case DELETE:
-                        processDeleteChange(folderData);
-                        break;
-                    case CREATE:
-                        processCreateChange(folderData, changeType);
-                        break;
-                    case MODIFY:
-                        processModifyChange(folderData, changeType);
-                        break;
+                        case DELETE:
+                            processDeleteChange(folderData);
+                            break;
+                        case CREATE:
+                            processCreateChange(folderData, changeType);
+                            break;
+                        case MODIFY:
+                            processModifyChange(folderData, changeType);
+                            break;
+                        default:
+                            LOG.debug("Strange change type {}", changeType);
                     }
 
-                } catch (InterruptedException | IOException e) {
-                    LOG.error("Failed in change wait", e);
+                } catch (final InterruptedException | IOException ex) {
+                    LOG.error("Failed in change wait", ex);
                 }
             }
         }
@@ -277,7 +279,7 @@ public class LocalFolderWatching implements Runnable {
             filesModifiedMap.put(folderData.getPath(),
                     new FileChangeData(changeType, folderData.getSize()));
             LOG.trace("File created. Waiting for completion ({})",
-                    () -> folderData.getPath().toAbsolutePath());
+                () -> folderData.getPath().toAbsolutePath());
         }
 
         private void processDeleteChange(final LocalFolderData folderData) {
@@ -306,7 +308,7 @@ public class LocalFolderWatching implements Runnable {
                     filesToProcess.stream().map(fd -> fd.getPath())
                             .forEach(filesModifiedMap::remove);
                     LOG.trace("Notifying about {} files created/modified",
-                            () -> filesToProcess.size());
+                        () -> filesToProcess.size());
                     filesToProcess.forEach(changeListener::processChange);
                 }
             }
@@ -330,17 +332,17 @@ public class LocalFolderWatching implements Runnable {
             if (currentSize == prevSize) {
                 if (entry.getValue().isFirstEqualCheckDone()) {
                     LOG.trace("File is ready. ({})",
-                            () -> file.getAbsolutePath());
+                        () -> file.getAbsolutePath());
                     return true;
                 } else {
                     LOG.trace("File is not ready. Size equals ({})",
-                            () -> file.getAbsolutePath());
+                        () -> file.getAbsolutePath());
                     entry.getValue().setFirstEqualCheckDone(true);
                     return false;
                 }
             } else {
                 LOG.trace("File is not ready yet. Size differs ({})",
-                        () -> file.getAbsolutePath());
+                    () -> file.getAbsolutePath());
                 entry.getValue().setSize(currentSize);
                 return false;
             }
@@ -359,7 +361,7 @@ public class LocalFolderWatching implements Runnable {
         private final LocalFolderChangeType changeType;
         private Long size;
 
-        private boolean firstEqualCheckDone = false;
+        private boolean firstEqualCheckDone;
 
         public FileChangeData(final LocalFolderChangeType changeType, final Long size) {
             this.changeType = changeType;

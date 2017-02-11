@@ -87,7 +87,8 @@ public class UploadService
         final long lastModified = file.lastModified();
         final Date lastModifiedDate = (lastModified == 0L) ? new Date() : new Date(lastModified);
 
-        final LocalDateTime lastModifiedDateTime = LocalDateTime.ofInstant(lastModifiedDate.toInstant(), ZoneOffset.UTC);
+        final LocalDateTime lastModifiedDateTime = LocalDateTime.ofInstant(lastModifiedDate.toInstant(),
+                ZoneOffset.UTC);
 
         LOG.debug("File modified dateTime is {} for {}", lastModifiedDateTime.toString(), dropboxPath);
 
@@ -95,13 +96,13 @@ public class UploadService
         final boolean override;
         if (existingFileData == null) {
             override = false;
-            LOG.debug("Existing file info is not found for {}", ()->dropboxPath);
+            LOG.debug("Existing file info is not found for {}", () -> dropboxPath);
         } else if (existingFileData.getServerModified().isBefore(lastModifiedDateTime)) {
             override = true;
-            LOG.debug("Existing file info is found and serverModified is earlier for {}", ()->dropboxPath);
+            LOG.debug("Existing file info is found and serverModified is earlier for {}", () -> dropboxPath);
         } else {
             override = false;
-            LOG.debug("Existing file info is found and serverModified is later for {}", ()->dropboxPath);
+            LOG.debug("Existing file info is found and serverModified is later for {}", () -> dropboxPath);
         }
 
         try (final InputStream is = new BufferedInputStream(
@@ -113,9 +114,9 @@ public class UploadService
             metadataDao.write(fileData);
             metadataDao.writeLoadedFlag(fileData.getId(), true);
 
-        } catch (IOException e) {
-            LOG.error("Error when reading file for upload", e);
-            throw new DSyncClientException(e);
+        } catch (final IOException ex) {
+            LOG.error("Error when reading file for upload", ex);
+            throw new DSyncClientException(ex);
         }
     }
 

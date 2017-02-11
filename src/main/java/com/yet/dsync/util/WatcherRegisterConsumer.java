@@ -58,7 +58,7 @@ public class WatcherRegisterConsumer implements Consumer<Path> {
 //            } else if (SystemUtils.IS_OS_WINDOWS) {
 //                registerWatcherForFileTree(path);
 //            }
-        } catch (IOException e) {
+        } catch (final IOException ex) {
             throw new DSyncClientException("Error registering path " + path);
         }
 
@@ -73,7 +73,8 @@ public class WatcherRegisterConsumer implements Consumer<Path> {
     private void registerWatchersRecursively(final Path path) throws IOException {
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
             @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+            public FileVisitResult preVisitDirectory(final Path dir,
+                                                     final BasicFileAttributes attrs) throws IOException {
                 LOG.trace("Registering in watcher server: {}", () -> dir);
                 final WatchKey watchKey = dir
                         .register(watchService,
@@ -99,9 +100,9 @@ public class WatcherRegisterConsumer implements Consumer<Path> {
     private void registerWatcherForFileTree(final Path path) throws IOException {
         final WatchKey watchKey = path.register(watchService,
                 new WatchEvent.Kind[] {
-                        StandardWatchEventKinds.ENTRY_CREATE,
-                        StandardWatchEventKinds.ENTRY_DELETE,
-                        StandardWatchEventKinds.ENTRY_MODIFY},
+                    StandardWatchEventKinds.ENTRY_CREATE,
+                    StandardWatchEventKinds.ENTRY_DELETE,
+                    StandardWatchEventKinds.ENTRY_MODIFY},
                 ExtendedWatchEventModifier.FILE_TREE);
         if (watchKeyConsumer != null) {
             watchKeyConsumer.accept(watchKey);

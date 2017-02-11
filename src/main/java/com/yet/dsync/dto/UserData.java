@@ -16,16 +16,6 @@ package com.yet.dsync.dto;
 
 public class UserData {
 
-    public static String humanReadableByteCount(final long bytes) {
-        final int unit = 1024;
-        if (bytes < unit) {
-            return bytes + " B";
-        }
-        final int exp = (int) (Math.log(bytes) / Math.log(unit));
-        final String pre = ("KMGTPE").charAt(exp - 1) + "i";
-        return String.format("%.2f %sB", bytes / Math.pow(unit, exp), pre);
-    }
-
     private final String userName;
 
     private final long usedBytes;
@@ -59,4 +49,13 @@ public class UserData {
         return humanReadableByteCount(availBytes);
     }
 
+    private String humanReadableByteCount(final long bytes) {
+        final int unit = 1024;
+        if (bytes < unit) {
+            return bytes + " B";
+        }
+        final int exp = (int) (Math.log(bytes) / Math.log(unit));
+        final String pre = "KMGTPE".charAt(exp - 1) + "i";
+        return String.format("%.2f %sB", bytes / Math.pow(unit, exp), pre);
+    }
 }

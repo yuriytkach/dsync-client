@@ -94,7 +94,7 @@ public class DSyncClient {
 
         greeting();
 
-        if ( ! isInitialSyncDone() ) {
+        if (!isInitialSyncDone()) {
             initialSync();
         }
 
@@ -126,11 +126,11 @@ public class DSyncClient {
         }
 
         final File dbDir = dbPathFile.getParentFile();
-        if (!dbDir.exists() ) {
+        if (!dbDir.exists()) {
             dbDir.mkdirs();
         }
 
-        final boolean firstRun = reset || ! dbPathFile.exists();
+        final boolean firstRun = reset || !dbPathFile.exists();
 
         LOG.debug("Using database at {}", () -> dbPathFile.getAbsolutePath());
 
@@ -181,7 +181,7 @@ public class DSyncClient {
     private void initialSync() {
         final Runnable syncThread = dropboxService.createInitialSyncThread(fileDataSet -> {
             fileDataSet.forEach(fd -> LOG.info("DROPBOX {}", () -> fd.toString()));
-            LOG.debug("Writing DB: {} records",() -> fileDataSet.size());
+            LOG.debug("Writing DB: {} records", () -> fileDataSet.size());
             metadataDao.write(fileDataSet);
             LOG.debug("Writing DB done");
         });
