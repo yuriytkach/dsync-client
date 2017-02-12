@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -53,12 +54,17 @@ public class LocalFolderService {
         System.out.print("Input local folder to use for Dropbox: ");
 
         try {
-            final String folder = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
+            final String folder = new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset()))
+                    .readLine();
+
+            if (StringUtils.isBlank(folder)) {
+                throw new DSyncClientException("No local folder specified");
+            }
 
             final File dir = new File(folder);
             if (dir.exists()) {
                 System.out.print("WARNING! The folder exists. All its contents will be deleted. Continue? [y/n] ");
-                final char answer = (char) new BufferedReader(new InputStreamReader(System.in)).read();
+                final char answer = (char) new InputStreamReader(System.in, Charset.defaultCharset()).read();
                 System.out.println();
                 if (answer == 'y') {
                     FileUtils.deleteDirectory(dir);

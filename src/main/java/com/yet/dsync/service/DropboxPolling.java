@@ -89,7 +89,7 @@ public class DropboxPolling implements Runnable {
                                     }
                                 }
                             }
-                        } catch (final Exception ex) {
+                        } catch (final DbxException ex) {
                             LOG.warn("Failed during long poll: {}", ex.getMessage());
                             LOG.warn("Retrying long poll");
                         }

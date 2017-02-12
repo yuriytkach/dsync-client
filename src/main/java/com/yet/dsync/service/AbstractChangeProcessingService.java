@@ -16,6 +16,7 @@ package com.yet.dsync.service;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yet.dsync.exception.DSyncClientException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -90,6 +91,8 @@ public abstract class AbstractChangeProcessingService<T> {
         return new PriorityBlockingQueue<T>(PROCESSING_QUEUE_CAPACITY, changeComparator);
     }
 
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+            justification = "Not interested in futures from always running threads")
     private void initDownloadThreads() {
         for (int i = 0; i < QUICK_THREAD_NUMBER; i++) {
             executorService.submit(new ProcessingThread(quickProcessingQueue));

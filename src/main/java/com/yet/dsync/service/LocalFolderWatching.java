@@ -39,6 +39,7 @@ import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
@@ -172,7 +173,7 @@ public class LocalFolderWatching implements Runnable {
 
     private void processWatchEvent(final Kind<Path> watchEventKind, final Path path) {
         final String dropboxPathLower = PathUtil.extractDropboxPath(localDir, path)
-                .toLowerCase();
+                .toLowerCase(Locale.getDefault());
         if (globalOperationsTracker.isTracked(dropboxPathLower)) {
             LOG.trace("Path already tracked. Skipping: {}", () -> path);
         } else {
@@ -358,7 +359,7 @@ public class LocalFolderWatching implements Runnable {
      * becomes equal the flag is set, so we'll wait some more time to finally
      * trigger the change.
      */
-    private class FileChangeData {
+    private static class FileChangeData {
         private final LocalFolderChangeType changeType;
         private Long size;
 

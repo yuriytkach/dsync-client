@@ -44,6 +44,7 @@ import com.yet.dsync.dto.UserData;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,7 +54,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -88,6 +91,7 @@ public class DropboxService {
     }
 
     @SuppressWarnings({"PMD.SystemPrintln", "PMD.DoNotCallSystemExit"})
+    @SuppressFBWarnings(value = "DM_EXIT", justification = "OK to exit if user input is invalid")
     public void authenticate() {
         loadAppKeyProvider();
         final String appKey = loadAppKey();
@@ -105,10 +109,15 @@ public class DropboxService {
         System.out.println("3. Copy the authorization code.");
         System.out.print("4. Input code and hit Enter: ");
         try {
-            final String code = new BufferedReader(new InputStreamReader(System.in)).readLine().trim();
+            final String code = new BufferedReader(new InputStreamReader(System.in, Charset.defaultCharset()))
+                    .readLine();
 
-            final DbxAuthFinish finish = webAuth.finishFromCode(code);
-            configDao.write(Config.ACCESS_TOKEN, finish.getAccessToken());
+            if (StringUtils.isNotBlank(code)) {
+                final DbxAuthFinish finish = webAuth.finishFromCode(code);
+                configDao.write(Config.ACCESS_TOKEN, finish.getAccessToken());
+            } else {
+                throw new DSyncClientException("No code was read from input");
+            }
 
         } catch (final IOException ex) {
             LOG.error("IO error", ex);
@@ -133,7 +142,8 @@ public class DropboxService {
             this.appSecretFromProvider = (String) getSecretMethod.invoke(obj);
 
             LOG.debug("Got key and secret from key provider");
-        } catch (final Exception ex) {
+        } catch (final ClassNotFoundException | InstantiationException
+                | IllegalAccessException | NoSuchMethodException | InvocationTargetException ex) {
             LOG.debug("DSyncClientKeyProvider class not found");
         }
     }
@@ -316,7 +326,7 @@ public class DropboxService {
 
             return DropboxUtil.convertMetadata(metadata);
 
-        } catch (final Exception ex) {
+        } catch (final DbxException | IOException ex) {
             LOG.error("Failed to upload file to Dropbox: " + dropboxPath, ex);
             throw new DSyncClientException(ex);
         }

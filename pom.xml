@@ -31,6 +31,8 @@
         <sevntu.checkstyle.plugin.version>1.23.0</sevntu.checkstyle.plugin.version>
 
 		<pmd.plugin.version>3.7</pmd.plugin.version>
+
+		<findbugs.version>3.0.1</findbugs.version>
 	</properties>
 
     <profiles>
@@ -59,6 +61,12 @@
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
 			<version>${sqlite.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>annotations</artifactId>
+			<version>${findbugs.version}</version>
 		</dependency>
 
 
@@ -257,6 +265,28 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>${findbugs.version}</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>checkstyle</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+							<failOnError>true</failOnError>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
 	</build>
 
@@ -279,8 +309,20 @@
                     <rulesets>
                         <ruleset>config/pmd/pmd-ruleset.xml</ruleset>
                     </rulesets>
+                    <failOnViolation>false</failOnViolation>
                 </configuration>
 			</plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>${findbugs.version}</version>
+                <configuration>
+                    <xmlOutput>false</xmlOutput>
+                    <effort>Max</effort>
+                    <threshold>Low</threshold>
+					<failOnError>false</failOnError>
+                </configuration>
+            </plugin>
         </plugins>
     </reporting>
 

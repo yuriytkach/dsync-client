@@ -18,6 +18,7 @@ import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dao.DatabaseInit;
 import com.yet.dsync.dao.MetadataDao;
 import com.yet.dsync.dto.UserData;
+import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.service.DownloadService;
 import com.yet.dsync.service.DropboxService;
 import com.yet.dsync.service.GlobalOperationsTracker;
@@ -115,18 +116,19 @@ public class DSyncClient {
     }
 
     private void initDao(final String dbPath, final boolean reset) {
-        final DatabaseInit dbInit = new DatabaseInit();
-
         final File dbPathFile = new File(dbPath).getAbsoluteFile();
 
         if (reset) {
             LOG.info("Resetting configuration");
-            dbPathFile.delete();
+            final boolean fileDeleteResult = dbPathFile.delete();
+            if (!fileDeleteResult) {
+                throw new DSyncClientException("Failed to delete previous configuration");
+            }
         }
 
         final File dbDir = dbPathFile.getParentFile();
-        if (!dbDir.exists()) {
-            dbDir.mkdirs();
+        if (!dbDir.exists() && !dbDir.mkdirs()) {
+            throw new DSyncClientException("Failed to create directories for new configuration file");
         }
 
         final boolean firstRun = reset || !dbPathFile.exists();
@@ -134,6 +136,8 @@ public class DSyncClient {
         LOG.debug("Using database at {}", () -> dbPathFile.getAbsolutePath());
 
         final String dbName = dbPathFile.getName();
+
+        final DatabaseInit dbInit = new DatabaseInit();
 
         @SuppressWarnings("PMD.CloseResource")
         final Connection connection = dbInit.createConnection(dbDir.getAbsolutePath(), dbName);
