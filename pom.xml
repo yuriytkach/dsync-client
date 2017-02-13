@@ -163,6 +163,7 @@
 						<descriptor>src/main/assembly/assembly.xml</descriptor>
 					</descriptors>
                     <outputDirectory>${distribution.out.dir}</outputDirectory>
+					<tarLongFileMode>posix</tarLongFileMode>
 				</configuration>
 				<executions>
 					<execution>
