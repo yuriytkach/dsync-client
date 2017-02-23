@@ -17,7 +17,7 @@ if [[ "$_java" ]]; then
     
     if [ "$JAVA_VER" -ge 18 ]; then
         
-        $_java -cp "lib/*:config" com.yet.dsync.DSyncClient
+        $_java -cp "lib/*:config" com.yet.dsync.DSyncClient "$@"
         
     else
         echo "Java version is less than 1.8. Program won't run"
