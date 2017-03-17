@@ -17,3 +17,11 @@ As of now, features that work:
 * Continuously sync files/folders from server to local dir
 * Continuously sync files/folders from local dir to server
 * No offline local changes detection (so if you change localy something when client is not running, it won't pick up changes on start). Therefore, no conflict handling
+
+## Quick links
+
+|Item                  |Link                                                                                      |
+|:---------------------|:-----------------------------------------------------------------------------------------|
+|Continuous integration| [![CircleCI](https://circleci.com/gh/yuriytkach/dsync-client.svg?style=svg)](https://circleci.com/gh/yuriytkach/dsync-client)                       |
+|Dependencies          |[![Dependency Status](https://www.versioneye.com/user/projects/58cc455acef500003fd3bf59/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/58cc455acef500003fd3bf59) |
+
