@@ -1,5 +1,5 @@
 # dsync-client
-Dropbox two-way synchronization client.   [![CircleCI](https://circleci.com/gh/yuriytkach/dsync-client.svg?style=svg)](https://circleci.com/gh/yuriytkach/dsync-client)
+Dropbox two-way synchronization client.
 
 Get the latest working version here: https://github.com/yuriytkach/dsync-client/releases/latest
 
