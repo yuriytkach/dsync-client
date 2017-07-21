@@ -31,10 +31,10 @@ import java.util.Collection;
 import java.util.Locale;
 
 public class DownloadService
-        extends AbstractChangeProcessingService<DropboxFileData> {
+    extends AbstractChangeProcessingService<DropboxFileData> {
 
     private static final Logger LOG = LogManager
-            .getLogger(DownloadService.class);
+        .getLogger(DownloadService.class);
 
     private final MetadataDao metadataDao;
     private final LocalFolderService localFolderService;
@@ -93,9 +93,9 @@ public class DownloadService
 
     private File resolveFile(final DropboxFileData fileData) {
         final String fileDir = FilenameUtils
-                .getFullPathNoEndSeparator(fileData.getPathDisplay());
+            .getFullPathNoEndSeparator(fileData.getPathDisplay());
         final String fileName = FilenameUtils
-                .getName(fileData.getPathDisplay());
+            .getName(fileData.getPathDisplay());
 
         final File dir = localFolderService.buildFileObject(fileDir);
 
@@ -104,21 +104,21 @@ public class DownloadService
             fullFilePath = dir.getAbsolutePath() + File.separator + fileName;
         } else {
             final DropboxFileData dirData = metadataDao
-                    .readByLowerPath(fileDir.toLowerCase(Locale.getDefault()));
+                .readByLowerPath(fileDir.toLowerCase(Locale.getDefault()));
             if (dirData == null) {
                 fullFilePath = dir.getAbsolutePath() + File.separator
-                        + fileName;
+                    + fileName;
             } else {
                 final String fileDisplayPath = dirData.getPathDisplay()
-                        + File.separator + fileName;
+                    + File.separator + fileName;
 
                 final DropboxFileData newFileData = fileData.toBuilder()
-                  .pathDisplay(fileDisplayPath)
-                  .build();
+                    .pathDisplay(fileDisplayPath)
+                    .build();
                 metadataDao.write(newFileData);
 
                 fullFilePath = localFolderService
-                        .buildFileObject(fileDisplayPath).getAbsolutePath();
+                    .buildFileObject(fileDisplayPath).getAbsolutePath();
             }
         }
 

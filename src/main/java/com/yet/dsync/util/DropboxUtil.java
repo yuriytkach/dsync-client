@@ -31,9 +31,9 @@ public final class DropboxUtil {
 
     public static DropboxFileData convertMetadata(final Metadata metadata) {
         final DropboxFileData.DropboxFileDataBuilder builder = DropboxFileData.builder()
-          .changeType(DropboxChangeType.fromMetadata(metadata))
-          .pathDisplay(metadata.getPathDisplay())
-          .pathLower(metadata.getPathLower());
+            .changeType(DropboxChangeType.fromMetadata(metadata))
+            .pathDisplay(metadata.getPathDisplay())
+            .pathLower(metadata.getPathLower());
 
         if (metadata instanceof FolderMetadata) {
             final FolderMetadata folderMetadata = (FolderMetadata) metadata;
