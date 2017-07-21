@@ -15,6 +15,7 @@
 package com.yet.dsync.service;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -70,13 +71,10 @@ public class GlobalOperationsTracker {
         return trackMap.containsKey(pathLower);
     }
 
+    @RequiredArgsConstructor
     private class RemoveTrackingThread implements Runnable {
 
         private final String pathLower;
-
-        RemoveTrackingThread(final String pathLower) {
-            this.pathLower = pathLower;
-        }
 
         @Override
         public void run() {

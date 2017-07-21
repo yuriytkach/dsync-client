@@ -17,6 +17,7 @@ package com.yet.dsync.service;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.yet.dsync.exception.DSyncClientException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -153,13 +154,10 @@ public abstract class AbstractChangeProcessingService<T> {
      * Processing thread that will take change data from the queue and call the
      * {@link #processChange(Object)} method
      */
+    @RequiredArgsConstructor
     private class ProcessingThread implements Runnable {
 
         private final BlockingQueue<T> queue;
-
-        ProcessingThread(final BlockingQueue<T> queue) {
-            this.queue = queue;
-        }
 
         @Override
         public void run() {

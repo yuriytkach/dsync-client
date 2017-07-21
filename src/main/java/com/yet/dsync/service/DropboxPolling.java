@@ -22,12 +22,14 @@ import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
+import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 public class DropboxPolling implements Runnable {
 
     private static final Logger LOG = LogManager.getLogger(DropboxPolling.class);
@@ -36,14 +38,6 @@ public class DropboxPolling implements Runnable {
     private final DbxClientV2 client;
     private final ConfigDao configDao;
     private final DropboxChange changeListener;
-
-    public DropboxPolling(final DbxClientV2 client,
-                          final ConfigDao configDao,
-                          final DropboxChange changeListener) {
-        this.client = client;
-        this.configDao = configDao;
-        this.changeListener = changeListener;
-    }
 
     @Override
     public void run() {

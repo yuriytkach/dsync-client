@@ -45,6 +45,7 @@ import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.DropboxUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,6 +62,7 @@ import java.util.Date;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 public class DropboxService {
 
     private static final Logger LOG = LogManager.getLogger(DropboxService.class);
@@ -80,10 +82,6 @@ public class DropboxService {
     private String appKeyFromProvider = "YOUR_APP_KEY";
 
     private String appSecretFromProvider = "YOUR_APP_SECRET";
-
-    public DropboxService(final ConfigDao configDao) {
-        this.configDao = configDao;
-    }
 
     public void createConfig() {
         final Builder configBuilder = DbxRequestConfig.newBuilder("dsyncclient");

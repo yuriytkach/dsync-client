@@ -15,6 +15,7 @@
 package com.yet.dsync.util;
 
 import com.yet.dsync.exception.DSyncClientException;
+import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,17 +32,13 @@ import java.util.function.Consumer;
 
 //import com.sun.nio.file.SensitivityWatchEventModifier;
 
+@RequiredArgsConstructor
 public class WatcherRegisterConsumer implements Consumer<Path> {
 
     private static final Logger LOG = LogManager.getLogger(WatcherRegisterConsumer.class);
 
     private final WatchService watchService;
     private final Consumer<WatchKey> watchKeyConsumer;
-
-    public WatcherRegisterConsumer(final WatchService watchService, final Consumer<WatchKey> watchKeyConsumer) {
-        this.watchService = watchService;
-        this.watchKeyConsumer = watchKeyConsumer;
-    }
 
     @Override
     public void accept(final Path path) {

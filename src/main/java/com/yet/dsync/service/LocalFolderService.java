@@ -18,6 +18,7 @@ import com.yet.dsync.dao.ConfigDao;
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 import com.yet.dsync.util.PathUtil;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -32,6 +33,7 @@ import java.nio.file.Path;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+@RequiredArgsConstructor
 public class LocalFolderService {
 
     private static final Logger LOG = LogManager.getLogger(LocalFolderService.class);
@@ -42,12 +44,6 @@ public class LocalFolderService {
     private final Lock syncLock = new ReentrantLock(true);
 
     private File localDir;
-
-    public LocalFolderService(final ConfigDao configDao,
-                              final GlobalOperationsTracker globalOperationsTracker) {
-        this.configDao = configDao;
-        this.globalOperationsTracker = globalOperationsTracker;
-    }
 
     @SuppressWarnings("PMD.SystemPrintln")
     public void setupLocalFolder() {
