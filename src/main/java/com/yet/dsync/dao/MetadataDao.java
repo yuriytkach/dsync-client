@@ -16,6 +16,7 @@ package com.yet.dsync.dao;
 
 import com.yet.dsync.dto.DropboxFileData;
 import com.yet.dsync.exception.DSyncClientException;
+import lombok.SneakyThrows;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -34,16 +35,16 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class MetadataDao {
 
-    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE METADATA ("
-            + "ID       TEXT PRIMARY KEY  NOT NULL,"
-            + "PATH     TEXT              NOT NULL,"
-            + "PLOWER   TEXT              NOT NULL,"
-            + "LOADED   INTEGER           NOT NULL,"
-            + "REV      TEXT,"
-            + "SIZE     INTEGER,"
-            + "SRVDATE  INTEGER,"
-            + "CLIDATE  INTEGER"
-            + ")";
+    static final String CREATE_TABLE_STATEMENT = "CREATE TABLE METADATA ("
+        + "ID       TEXT PRIMARY KEY  NOT NULL,"
+        + "PATH     TEXT              NOT NULL,"
+        + "PLOWER   TEXT              NOT NULL,"
+        + "LOADED   INTEGER           NOT NULL,"
+        + "REV      TEXT,"
+        + "SIZE     INTEGER,"
+        + "SRVDATE  INTEGER,"
+        + "CLIDATE  INTEGER"
+        + ")";
 
     private static final String SELECT_BY_ID_STATEMENT = "SELECT * FROM METADATA WHERE ID = ?";
 
@@ -52,17 +53,17 @@ public class MetadataDao {
     private static final String SELECT_BY_PLOWER_STATEMENT = "SELECT * FROM METADATA WHERE PLOWER = ?";
 
     private static final String INSERT_STATEMENT = "INSERT INTO METADATA ("
-            + "ID,PATH,PLOWER,LOADED,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?,?,?)";
+        + "ID,PATH,PLOWER,LOADED,REV,SIZE,SRVDATE,CLIDATE) VALUES (?,?,?,?,?,?,?,?)";
 
     private static final String UPDATE_LOADED_STATEMENT = "UPDATE METADATA SET LOADED = ? WHERE ID = ?";
 
     private static final String UPDATE_FIELDS_STATEMENT = "UPDATE METADATA SET PATH = ?,"
-                                                                + "PLOWER = ?,"
-                                                                + "REV = ?,"
-                                                                + "SIZE = ?,"
-                                                                + "SRVDATE = ?,"
-                                                                + "CLIDATE = ?"
-                                                                + " WHERE ID = ?";
+        + "PLOWER = ?,"
+        + "REV = ?,"
+        + "SIZE = ?,"
+        + "SRVDATE = ?,"
+        + "CLIDATE = ?"
+        + " WHERE ID = ?";
 
     private static final String DELETE_BY_PATH_STATEMENT = "DELETE FROM METADATA WHERE PLOWER = ?";
 
@@ -93,20 +94,18 @@ public class MetadataDao {
 
     private final Lock syncLock = new ReentrantLock(true);
 
+    @SneakyThrows
     public MetadataDao(final Connection connection) {
-        try {
-            readByIdStatement = connection.prepareStatement(SELECT_BY_ID_STATEMENT);
-            readNotLoadedStatement = connection.prepareStatement(SELECT_NOT_LOADED_STATEMENT);
-            readByPLowerStatement = connection.prepareStatement(SELECT_BY_PLOWER_STATEMENT);
-            insertStatement = connection.prepareStatement(INSERT_STATEMENT);
-            updateLoadedStatement = connection.prepareStatement(UPDATE_LOADED_STATEMENT);
-            updateFieldsStatement = connection.prepareStatement(UPDATE_FIELDS_STATEMENT);
-            deleteByPathStatement = connection.prepareStatement(DELETE_BY_PATH_STATEMENT);
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
-        }
+        readByIdStatement = connection.prepareStatement(SELECT_BY_ID_STATEMENT);
+        readNotLoadedStatement = connection.prepareStatement(SELECT_NOT_LOADED_STATEMENT);
+        readByPLowerStatement = connection.prepareStatement(SELECT_BY_PLOWER_STATEMENT);
+        insertStatement = connection.prepareStatement(INSERT_STATEMENT);
+        updateLoadedStatement = connection.prepareStatement(UPDATE_LOADED_STATEMENT);
+        updateFieldsStatement = connection.prepareStatement(UPDATE_FIELDS_STATEMENT);
+        deleteByPathStatement = connection.prepareStatement(DELETE_BY_PATH_STATEMENT);
     }
 
+    @SneakyThrows
     public DropboxFileData readByLowerPath(final String lowerPath) {
         syncLock.lock();
         try {
@@ -119,14 +118,13 @@ public class MetadataDao {
                     return null;
                 }
             }
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
         } finally {
             syncLock.unlock();
         }
     }
 
-    private DropboxFileData buildFileData(final ResultSet resultSet) throws SQLException {
+    @SneakyThrows
+    private DropboxFileData buildFileData(final ResultSet resultSet) {
         final BigDecimal size = resultSet.getBigDecimal(COL_SIZE);
         return DropboxFileData.builder()
             .id(resultSet.getString(COL_ID))
@@ -139,6 +137,7 @@ public class MetadataDao {
             .build();
     }
 
+    @SneakyThrows
     public void write(final DropboxFileData fileData) {
         syncLock.lock();
         try {
@@ -149,13 +148,13 @@ public class MetadataDao {
                     updateFieldsStatement.setString(UPD_PARAM_PATH, fileData.getPathDisplay());
                     updateFieldsStatement.setString(UPD_PARAM_PATH_LOWER, fileData.getPathLower());
                     setStatementParams(updateFieldsStatement, UPD_PARAM_REV,
-                            fileData.getRev(), Types.VARCHAR);
+                        fileData.getRev(), Types.VARCHAR);
                     setStatementParams(updateFieldsStatement, UPD_PARAM_SIZE,
-                            fileData.getSize(), Types.BIGINT);
+                        fileData.getSize(), Types.BIGINT);
                     setStatementParams(updateFieldsStatement, UPD_PARAM_SRVDATE,
-                            dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
+                        dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
                     setStatementParams(updateFieldsStatement, UPD_PARAM_CLIDATE,
-                            dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
+                        dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
 
                     updateFieldsStatement.setString(UPD_PARAM_ID, fileData.getId());
 
@@ -165,14 +164,13 @@ public class MetadataDao {
                     insertStatement.executeUpdate();
                 }
             }
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
         } finally {
             syncLock.unlock();
         }
     }
 
-    private void fillInsertStatement(final DropboxFileData fileData) throws SQLException {
+    @SneakyThrows
+    private void fillInsertStatement(final DropboxFileData fileData) {
         insertStatement.setString(COL_ID, fileData.getId());
         insertStatement.setString(COL_PATH, fileData.getPathDisplay());
         insertStatement.setString(COL_PATH_LOWER, fileData.getPathLower());
@@ -180,11 +178,12 @@ public class MetadataDao {
         setStatementParams(insertStatement, COL_REV, fileData.getRev(), Types.VARCHAR);
         setStatementParams(insertStatement, COL_SIZE, fileData.getSize(), Types.BIGINT);
         setStatementParams(insertStatement, COL_SRVDATE,
-                dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
+            dateTimeToLong(fileData.getServerModified()), Types.BIGINT);
         setStatementParams(insertStatement, COL_CLIDATE,
-                dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
+            dateTimeToLong(fileData.getClientModified()), Types.BIGINT);
     }
 
+    @SneakyThrows
     public void write(final Set<DropboxFileData> fileDataSet) {
         syncLock.lock();
         try {
@@ -198,16 +197,13 @@ public class MetadataDao {
                 }
 
             });
-
             insertStatement.executeBatch();
-
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
         } finally {
             syncLock.unlock();
         }
     }
 
+    @SneakyThrows
     public Collection<DropboxFileData> readAllNotLoaded() {
         try (ResultSet resultSet = readNotLoadedStatement.executeQuery()) {
 
@@ -219,40 +215,37 @@ public class MetadataDao {
             }
 
             return allFileData;
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
         }
     }
 
-    public void writeLoadedFlag(final String id, final boolean loaded) {
+    @SneakyThrows
+    public void writeLoadedFlag(final String id) {
         syncLock.lock();
         try {
-            updateLoadedStatement.setBoolean(1, loaded);
+            updateLoadedStatement.setBoolean(1, Boolean.TRUE);
             updateLoadedStatement.setString(2, id);
 
             updateLoadedStatement.executeUpdate();
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
         } finally {
             syncLock.unlock();
         }
     }
 
+    @SneakyThrows
     public void deleteByLowerPath(final String pathLower) {
         syncLock.lock();
         try {
             deleteByPathStatement.setString(1, pathLower);
 
             deleteByPathStatement.executeUpdate();
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
         } finally {
             syncLock.unlock();
         }
     }
 
+    @SneakyThrows
     private void setStatementParams(final PreparedStatement statement,
-                                    final int column, final Object data, final int sqlType) throws SQLException {
+                                    final int column, final Object data, final int sqlType) {
         if (data == null) {
             statement.setNull(column, sqlType);
         } else {

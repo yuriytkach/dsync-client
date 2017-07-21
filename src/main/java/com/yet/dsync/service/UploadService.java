@@ -115,7 +115,7 @@ public class UploadService
                     is, changeData.getSize(), lastModifiedDate, override);
 
             metadataDao.write(fileData);
-            metadataDao.writeLoadedFlag(fileData.getId(), true);
+            metadataDao.writeLoadedFlag(fileData.getId());
 
         } catch (final IOException ex) {
             LOG.error("Error when reading file for upload", ex);
@@ -127,7 +127,7 @@ public class UploadService
         final DropboxFileData fileData = dropboxService.createFolder(dropboxPath);
 
         metadataDao.write(fileData);
-        metadataDao.writeLoadedFlag(fileData.getId(), true);
+        metadataDao.writeLoadedFlag(fileData.getId());
     }
 
     private void deleteData(final String dropboxPath) {

@@ -64,13 +64,13 @@ public class DownloadService
                 if (file.getParentFile().exists()) {
                     try (OutputStream fos = new BufferedOutputStream(new FileOutputStream(file))) {
                         dropboxService.downloadFile(fileData.getPathDisplay(), fos);
-                        metadataDao.writeLoadedFlag(fileData.getId(), true);
+                        metadataDao.writeLoadedFlag(fileData.getId());
                     } catch (final IOException ex) {
                         throw new DSyncClientException(ex);
                     }
-                    LOG.info("Downloaded {}", () -> fileData.getPathDisplay());
+                    LOG.info("Downloaded {}", fileData::getPathDisplay);
                 } else {
-                    LOG.warn("Skipped {}", () -> fileData.getPathDisplay());
+                    LOG.warn("Skipped {}", fileData::getPathDisplay);
                 }
             }
         } finally {
@@ -81,14 +81,14 @@ public class DownloadService
     private void deleteFileOrDirectory(final DropboxFileData fd) {
         localFolderService.deleteFileOrFolder(fd.getPathDisplay());
         metadataDao.deleteByLowerPath(fd.getPathLower());
-        LOG.info("Removed {}", () -> fd.getPathDisplay());
+        LOG.info("Removed {}", fd::getPathDisplay);
     }
 
     private void createDirectory(final DropboxFileData fileData) {
         localFolderService.createFolder(fileData.getPathDisplay());
-        metadataDao.writeLoadedFlag(fileData.getId(), true);
+        metadataDao.writeLoadedFlag(fileData.getId());
 
-        LOG.info("Created directory {}", () -> fileData.getPathDisplay());
+        LOG.info("Created directory {}", fileData::getPathDisplay);
     }
 
     private File resolveFile(final DropboxFileData fileData) {
@@ -128,7 +128,7 @@ public class DownloadService
     public void downloadAllNotLoaded() {
         final Collection<DropboxFileData> allNotLoaded = metadataDao.readAllNotLoaded();
         LOG.debug("Downloading {} objects that are not loaded..",
-            () -> allNotLoaded.size());
+            allNotLoaded::size);
         allNotLoaded.forEach(this::scheduleProcessing);
     }
 

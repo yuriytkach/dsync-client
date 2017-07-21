@@ -15,6 +15,7 @@
 package com.yet.dsync.dao;
 
 import com.yet.dsync.exception.DSyncClientException;
+import lombok.SneakyThrows;
 
 import java.io.File;
 import java.sql.Connection;
@@ -26,38 +27,31 @@ public class DatabaseInit {
 
     private static final String JDBC_PREFIX = "jdbc:sqlite:";
 
+    @SneakyThrows
     public DatabaseInit() {
-        try {
-            Class.forName("org.sqlite.JDBC");
-        } catch (final ClassNotFoundException ex) {
-            throw new DSyncClientException(ex);
-        }
+        Class.forName("org.sqlite.JDBC");
     }
 
+    @SneakyThrows
     public Connection createConnection(final String dbFolder, final String dbName) {
-        try {
-            return DriverManager.getConnection(JDBC_PREFIX + dbFolder + File.separator + dbName);
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
-        }
+        return DriverManager.getConnection(JDBC_PREFIX + dbFolder + File.separator + dbName);
     }
 
+    @SneakyThrows
     public void createTables(final Connection connection) {
-        try {
-            createConfigTable(connection);
-            createMetadataTable(connection);
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
-        }
+        createConfigTable(connection);
+        createMetadataTable(connection);
     }
 
-    private void createConfigTable(final Connection connection) throws SQLException {
+    @SneakyThrows
+    private void createConfigTable(final Connection connection) {
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate(ConfigDao.CREATE_TABLE_STATEMENT);
         }
     }
 
-    private void createMetadataTable(final Connection connection) throws SQLException {
+    @SneakyThrows
+    private void createMetadataTable(final Connection connection) {
         try (Statement stmt = connection.createStatement()) {
             stmt.executeUpdate(MetadataDao.CREATE_TABLE_STATEMENT);
         }

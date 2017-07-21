@@ -25,6 +25,7 @@ import com.yet.dsync.service.GlobalOperationsTracker;
 import com.yet.dsync.service.LocalFolderService;
 import com.yet.dsync.service.UploadService;
 import com.yet.dsync.util.Config;
+import lombok.SneakyThrows;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -47,7 +48,8 @@ public class DSyncClient {
     private ConfigDao configDao;
     private MetadataDao metadataDao;
 
-    public static void main(final String[] args) throws ParseException {
+    @SneakyThrows
+    public static void main(final String[] args) {
         final Options options = createCommandLineOptions();
         final CommandLineParser parser = new DefaultParser();
         final CommandLine cmd = parser.parse(options, args);
@@ -128,7 +130,7 @@ public class DSyncClient {
 
         final boolean firstRun = reset || !dbPathFile.exists();
 
-        LOG.debug("Using database at {}", () -> dbPathFile.getAbsolutePath());
+        LOG.debug("Using database at {}", dbPathFile::getAbsolutePath);
 
         final String dbName = dbPathFile.getName();
 
@@ -171,7 +173,7 @@ public class DSyncClient {
     private void greeting() {
         final UserData userData = dropboxService.retrieveUserData();
 
-        LOG.info("Hello, {}", () -> userData.getUserName());
+        LOG.info("Hello, {}", userData::getUserName);
         LOG.info("Used storage {} of {}", userData.getUsedBytesDisplay(), userData.getAvailBytesDisplay());
 
         LOG.info("Client is running. Use Ctrl+c to kill it.");
@@ -179,8 +181,8 @@ public class DSyncClient {
 
     private void initialSync() {
         final Runnable syncThread = dropboxService.createInitialSyncThread(fileDataSet -> {
-            fileDataSet.forEach(fd -> LOG.info("DROPBOX {}", () -> fd.toString()));
-            LOG.debug("Writing DB: {} records", () -> fileDataSet.size());
+            fileDataSet.forEach(fd -> LOG.info("DROPBOX {}", fd::toString));
+            LOG.debug("Writing DB: {} records", fileDataSet::size);
             metadataDao.write(fileDataSet);
             LOG.debug("Writing DB done");
         });
@@ -190,12 +192,12 @@ public class DSyncClient {
     }
 
     private CompletableFuture<Void> runPolling(final ExecutorService pool) {
-        final Runnable pollThread = dropboxService.createPollingThread(fileDataSet -> {
+        final Runnable pollThread = dropboxService.createPollingThread(fileDataSet ->
             fileDataSet.forEach(dropboxFileData -> {
-                LOG.info("DROPBOX {}", () -> dropboxFileData.toString());
+                LOG.info("DROPBOX {}", dropboxFileData::toString);
                 downloadService.scheduleProcessing(dropboxFileData);
-            });
-        });
+            })
+        );
         return CompletableFuture.runAsync(pollThread, pool);
     }
 

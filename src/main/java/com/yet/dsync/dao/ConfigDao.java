@@ -16,6 +16,7 @@ package com.yet.dsync.dao;
 
 import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
@@ -27,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ConfigDao {
 
-    public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE CONFIG ("
+    static final String CREATE_TABLE_STATEMENT = "CREATE TABLE CONFIG ("
             + "KEY    TEXT PRIMARY KEY  NOT NULL,"
             + "VALUE  TEXT              NOT NULL"
             + ")";
@@ -45,16 +46,14 @@ public class ConfigDao {
 
     private final Lock syncLock = new ReentrantLock(true);
 
+    @SneakyThrows
     public ConfigDao(final Connection connection) {
-        try {
-            readStatement = connection.prepareStatement(SELECT_STATEMENT);
-            insertStatement = connection.prepareStatement(INSERT_STATEMENT);
-            updateStatement = connection.prepareStatement(UPDATE_STATEMENT);
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
-        }
+        readStatement = connection.prepareStatement(SELECT_STATEMENT);
+        insertStatement = connection.prepareStatement(INSERT_STATEMENT);
+        updateStatement = connection.prepareStatement(UPDATE_STATEMENT);
     }
 
+    @SneakyThrows
     public String read(final Config key) {
         syncLock.lock();
         try {
@@ -67,13 +66,12 @@ public class ConfigDao {
                     return StringUtils.EMPTY;
                 }
             }
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
         } finally {
             syncLock.unlock();
         }
     }
 
+    @SneakyThrows
     public void write(final Config key, final String value) {
         syncLock.lock();
         try {
@@ -92,8 +90,6 @@ public class ConfigDao {
                     insertStatement.executeUpdate();
                 }
             }
-        } catch (final SQLException ex) {
-            throw new DSyncClientException(ex);
         } finally {
             syncLock.unlock();
         }
