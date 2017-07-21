@@ -14,7 +14,6 @@
 
 package com.yet.dsync.dao;
 
-import com.yet.dsync.exception.DSyncClientException;
 import com.yet.dsync.util.Config;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
@@ -22,19 +21,18 @@ import org.apache.commons.lang3.StringUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ConfigDao {
 
-    static final String CREATE_TABLE_STATEMENT = "CREATE TABLE CONFIG ("
-            + "KEY    TEXT PRIMARY KEY  NOT NULL,"
-            + "VALUE  TEXT              NOT NULL"
-            + ")";
-
     public static final String YES = "yes";
     public static final String NO = "no";
+
+    static final String CREATE_TABLE_STATEMENT = "CREATE TABLE CONFIG ("
+        + "KEY    TEXT PRIMARY KEY  NOT NULL,"
+        + "VALUE  TEXT              NOT NULL"
+        + ")";
 
     private static final String SELECT_STATEMENT = "SELECT VALUE FROM CONFIG WHERE KEY = ?";
     private static final String INSERT_STATEMENT = "INSERT INTO CONFIG (KEY,VALUE) VALUES (?,?)";

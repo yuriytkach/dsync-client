@@ -14,13 +14,11 @@
 
 package com.yet.dsync.dao;
 
-import com.yet.dsync.exception.DSyncClientException;
 import lombok.SneakyThrows;
 
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DatabaseInit {
