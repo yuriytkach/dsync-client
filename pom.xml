@@ -33,7 +33,7 @@
 		<pmd.plugin.version>3.8</pmd.plugin.version>
 
 		<findbugs.version>3.0.1</findbugs.version>
-		<findbugs.plugin.version>3.0.1</findbugs.plugin.version>
+		<findbugs.plugin.version>3.0.4</findbugs.plugin.version>
 	</properties>
 
     <profiles>
