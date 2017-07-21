@@ -137,9 +137,7 @@ public class UploadService
     }
 
     private String extractPath(final LocalFolderData changeData) {
-        final String dropboxPath = localFolderService
-                .extractDropboxPath(changeData.getPath());
-        return dropboxPath;
+        return localFolderService.extractDropboxPath(changeData.getPath());
     }
 
     @Override

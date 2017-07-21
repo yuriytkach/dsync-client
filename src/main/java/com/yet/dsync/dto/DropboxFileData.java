@@ -158,14 +158,14 @@ public final class DropboxFileData {
         }
 
         public Builder init(final DropboxFileData fileData) {
-            this.changeType = fileData.changeType;
-            this.clientModified = fileData.clientModified;
-            this.id = fileData.id;
-            this.pathDisplay = fileData.pathDisplay;
-            this.pathLower = fileData.pathLower;
-            this.rev = fileData.rev;
-            this.serverModified = fileData.serverModified;
-            this.size = fileData.size;
+            this.changeType = fileData.getChangeType();
+            this.clientModified = fileData.getClientModified();
+            this.id = fileData.getId();
+            this.pathDisplay = fileData.getPathDisplay();
+            this.pathLower = fileData.getPathLower();
+            this.rev = fileData.getRev();
+            this.serverModified = fileData.getServerModified();
+            this.size = fileData.getSize();
             return this;
         }
 

@@ -38,6 +38,7 @@
         <exclude name="EmptyMethodInAbstractClassShouldBeAbstract"/>
         <!-- Is not correct for Spring Boot world -->
         <exclude name="UseUtilityClass"/>
+        <exclude name="AccessorMethodGeneration"/>
     </rule>
     <rule ref="rulesets/java/empty.xml"/>
     <rule ref="rulesets/java/finalizers.xml"/>
