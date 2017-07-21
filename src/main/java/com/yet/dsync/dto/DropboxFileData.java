@@ -14,8 +14,13 @@
 
 package com.yet.dsync.dto;
 
+import lombok.Builder;
+import lombok.Data;
+
 import java.time.LocalDateTime;
 
+@Data
+@Builder(toBuilder = true)
 public final class DropboxFileData {
 
     private final DropboxChangeType changeType;
@@ -34,55 +39,12 @@ public final class DropboxFileData {
 
     private final LocalDateTime clientModified;
 
-    private DropboxFileData(final Builder builder) {
-        this.changeType = builder.changeType;
-        this.pathDisplay = builder.pathDisplay;
-        this.pathLower = builder.pathLower;
-        this.id = builder.id;
-        this.rev = builder.rev;
-        this.size = builder.size;
-        this.serverModified = builder.serverModified;
-        this.clientModified = builder.clientModified;
-    }
-
     public boolean isFile() {
         return rev != null;
     }
 
     public boolean isDirectory() {
         return id != null && rev == null;
-    }
-
-    public DropboxChangeType getChangeType() {
-        return changeType;
-    }
-
-    public String getPathDisplay() {
-        return pathDisplay;
-    }
-
-    public String getPathLower() {
-        return pathLower;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getRev() {
-        return rev;
-    }
-
-    public Long getSize() {
-        return size;
-    }
-
-    public LocalDateTime getServerModified() {
-        return serverModified;
-    }
-
-    public LocalDateTime getClientModified() {
-        return clientModified;
     }
 
     @Override
@@ -98,79 +60,5 @@ public final class DropboxFileData {
 
         str += "]";
         return str;
-    }
-
-    public static class Builder {
-        private DropboxChangeType changeType;
-
-        private String pathDisplay;
-
-        private String pathLower;
-
-        private String id;
-
-        private String rev;
-
-        private Long size;
-
-        private LocalDateTime serverModified;
-
-        private LocalDateTime clientModified;
-
-        public Builder changeType(final DropboxChangeType changeType) {
-            this.changeType = changeType;
-            return this;
-        }
-
-        public Builder pathDisplay(final String pathDisplay) {
-            this.pathDisplay = pathDisplay;
-            return this;
-        }
-
-        public Builder pathLower(final String pathLower) {
-            this.pathLower = pathLower;
-            return this;
-        }
-
-        public Builder id(final String id) {
-            this.id = id;
-            return this;
-        }
-
-        public Builder rev(final String rev) {
-            this.rev = rev;
-            return this;
-        }
-
-        public Builder size(final Long size) {
-            this.size = size;
-            return this;
-        }
-
-        public Builder serverModified(final LocalDateTime serverModified) {
-            this.serverModified = serverModified;
-            return this;
-        }
-
-        public Builder clientModified(final LocalDateTime clientModified) {
-            this.clientModified = clientModified;
-            return this;
-        }
-
-        public Builder init(final DropboxFileData fileData) {
-            this.changeType = fileData.getChangeType();
-            this.clientModified = fileData.getClientModified();
-            this.id = fileData.getId();
-            this.pathDisplay = fileData.getPathDisplay();
-            this.pathLower = fileData.getPathLower();
-            this.rev = fileData.getRev();
-            this.serverModified = fileData.getServerModified();
-            this.size = fileData.getSize();
-            return this;
-        }
-
-        public DropboxFileData build() {
-            return new DropboxFileData(this);
-        }
     }
 }

@@ -112,9 +112,9 @@ public class DownloadService
                 final String fileDisplayPath = dirData.getPathDisplay()
                         + File.separator + fileName;
 
-                final DropboxFileData.Builder newFileDataBuilder = new DropboxFileData.Builder();
-                newFileDataBuilder.init(fileData).pathDisplay(fileDisplayPath);
-                final DropboxFileData newFileData = newFileDataBuilder.build();
+                final DropboxFileData newFileData = fileData.toBuilder()
+                  .pathDisplay(fileDisplayPath)
+                  .build();
                 metadataDao.write(newFileData);
 
                 fullFilePath = localFolderService

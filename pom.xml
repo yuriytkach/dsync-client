@@ -16,6 +16,8 @@
 		<dropbox.version>3.0.3</dropbox.version>
 		<sqlite.version>3.19.3</sqlite.version>
 
+        <lombok.version>1.16.18</lombok.version>
+
 		<junit.version>4.12</junit.version>
 		<commons.io.version>2.5</commons.io.version>
 		<commons.cli.version>1.4</commons.cli.version>
@@ -57,6 +59,13 @@
                 </exclusion>
             </exclusions>
 		</dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
 		<dependency>
 			<groupId>org.xerial</groupId>

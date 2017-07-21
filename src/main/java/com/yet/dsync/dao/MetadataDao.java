@@ -127,17 +127,16 @@ public class MetadataDao {
     }
 
     private DropboxFileData buildFileData(final ResultSet resultSet) throws SQLException {
-        final DropboxFileData.Builder builder = new DropboxFileData.Builder();
         final BigDecimal size = resultSet.getBigDecimal(COL_SIZE);
-        builder
+        return DropboxFileData.builder()
             .id(resultSet.getString(COL_ID))
             .pathDisplay(resultSet.getString(COL_PATH))
             .pathLower(resultSet.getString(COL_PATH_LOWER))
             .rev(resultSet.getString(COL_REV))
             .size(size == null ? null : size.longValue())
             .serverModified(longToDateTime(resultSet.getBigDecimal(COL_SRVDATE)))
-            .clientModified(longToDateTime(resultSet.getBigDecimal(COL_SRVDATE)));
-        return builder.build();
+            .clientModified(longToDateTime(resultSet.getBigDecimal(COL_SRVDATE)))
+            .build();
     }
 
     public void write(final DropboxFileData fileData) {

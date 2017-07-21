@@ -14,25 +14,15 @@
 
 package com.yet.dsync.dto;
 
+import lombok.Data;
+
 import java.nio.file.Path;
 
+@Data
 public class LocalFolderData  {
 
     private final Path path;
     private final LocalFolderChangeType changeType;
-
-    public LocalFolderData(final Path path, final LocalFolderChangeType changeType) {
-        this.path = path;
-        this.changeType = changeType;
-    }
-
-    public Path getPath() {
-        return path;
-    }
-
-    public LocalFolderChangeType getChangeType() {
-        return changeType;
-    }
 
     public boolean isFile() {
         return path.toFile().isFile();
@@ -49,14 +39,5 @@ public class LocalFolderData  {
     public long getSize() {
         return path.toFile().length();
     }
-
-    @Override
-    public String toString() {
-        return LocalFolderData.class.getSimpleName()
-                + " [changeType=" + changeType
-                + ", path=" + path
-                + "]";
-    }
-
 
 }

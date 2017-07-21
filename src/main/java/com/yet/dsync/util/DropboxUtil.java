@@ -19,7 +19,6 @@ import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.Metadata;
 import com.yet.dsync.dto.DropboxChangeType;
 import com.yet.dsync.dto.DropboxFileData;
-import com.yet.dsync.dto.DropboxFileData.Builder;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -31,11 +30,10 @@ public final class DropboxUtil {
     private DropboxUtil() { }
 
     public static DropboxFileData convertMetadata(final Metadata metadata) {
-        final DropboxFileData.Builder builder = new Builder();
-        builder
-            .changeType(DropboxChangeType.fromMetadata(metadata))
-            .pathDisplay(metadata.getPathDisplay())
-            .pathLower(metadata.getPathLower());
+        final DropboxFileData.DropboxFileDataBuilder builder = DropboxFileData.builder()
+          .changeType(DropboxChangeType.fromMetadata(metadata))
+          .pathDisplay(metadata.getPathDisplay())
+          .pathLower(metadata.getPathLower());
 
         if (metadata instanceof FolderMetadata) {
             final FolderMetadata folderMetadata = (FolderMetadata) metadata;

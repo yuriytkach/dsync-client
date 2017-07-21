@@ -14,6 +14,9 @@
 
 package com.yet.dsync.dto;
 
+import lombok.Data;
+
+@Data
 public class UserData {
 
     private final String userName;
@@ -21,25 +24,6 @@ public class UserData {
     private final long usedBytes;
 
     private final long availBytes;
-
-    public UserData(final String userName, final long usedBytes, final long availBytes) {
-        super();
-        this.userName = userName;
-        this.usedBytes = usedBytes;
-        this.availBytes = availBytes;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public long getUsedBytes() {
-        return usedBytes;
-    }
-
-    public long getAvailBytes() {
-        return availBytes;
-    }
 
     public String getUsedBytesDisplay() {
         return humanReadableByteCount(usedBytes);
