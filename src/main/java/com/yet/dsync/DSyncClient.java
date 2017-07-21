@@ -25,12 +25,7 @@ import com.yet.dsync.service.GlobalOperationsTracker;
 import com.yet.dsync.service.LocalFolderService;
 import com.yet.dsync.service.UploadService;
 import com.yet.dsync.util.Config;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,7 +49,7 @@ public class DSyncClient {
 
     public static void main(final String[] args) throws ParseException {
         final Options options = createCommandLineOptions();
-        final CommandLineParser parser = new BasicParser();
+        final CommandLineParser parser = new DefaultParser();
         final CommandLine cmd = parser.parse(options, args);
 
         if (cmd.hasOption('h')) {
