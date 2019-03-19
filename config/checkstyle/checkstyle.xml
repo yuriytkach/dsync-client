@@ -66,8 +66,6 @@
             <property name="max" value="40"/>
             <!-- 30 by default -->
         </module>
-        <module name="FileContentsHolder"/>
-
 
         <!-- Checks for Size Violations                     -->
         <!-- See http://checkstyle.sf.net/config_sizes.html -->
@@ -262,20 +260,22 @@
         <!--This rule doesn't work correctly for method signature Indentations-->
         <module name="Indentation"/>
 
-        <!-- Forbidden logging, use SLF4J -->
+        <!-- Forbidden logging, use SLF4J
         <module name="com.github.sevntu.checkstyle.checks.coding.ForbidCertainImports">
             <property name="packageNameRegexp" value=".+"/>
             <property name="forbiddenImportsRegexp"
                 value="java\.util\.logging.*|org\.apache\.commons\.logging.*|ch\.qos\.logback.*|org\.apache\.log4j.*"/>
             <property name="forbiddenImportsExcludesRegexp" value=""/>
         </module>
+-->
 
-        <!-- Forbidden assertions, use AssertJ -->
+        <!-- Forbidden assertions, use AssertJ 
         <module name="com.github.sevntu.checkstyle.checks.coding.ForbidCertainImports">
             <property name="packageNameRegexp" value=".+"/>
             <property name="forbiddenImportsRegexp" value="org\.junit\.Assert\.assert.*|org\.hamcrest\.MatcherAssert\.assert.*"/>
             <property name="forbiddenImportsExcludesRegexp" value=""/>
         </module>
+-->
     </module>
 
     <module name="RegexpSingleline">
