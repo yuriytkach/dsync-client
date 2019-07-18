@@ -26,7 +26,7 @@
     <guava.version>22.0</guava.version>
 
     <log4j.version>2.8.2</log4j.version>
-    <jackson.yaml.version>2.9.8</jackson.yaml.version>
+    <jackson.yaml.version>2.9.9</jackson.yaml.version>
 
     <checkstyle.version>8.22</checkstyle.version>
     <checkstyle.plugin.version>2.17</checkstyle.plugin.version>
