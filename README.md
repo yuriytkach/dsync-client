@@ -23,5 +23,5 @@ As of now, features that work:
 |Item                  |Link                                                                                      |
 |:---------------------|:-----------------------------------------------------------------------------------------|
 |Continuous integration| [![CircleCI](https://circleci.com/gh/yuriytkach/dsync-client.svg?style=svg)](https://circleci.com/gh/yuriytkach/dsync-client)                       |
-|Dependencies          |[![Dependency Status](https://www.versioneye.com/user/projects/58cc455acef500003fd3bf59/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/58cc455acef500003fd3bf59) |
+|Dependencies          | [![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=yuriytkach/dsync-client)](https://dependabot.com) |
 
