@@ -13,7 +13,7 @@
 
     <distribution.out.dir>${project.build.directory}</distribution.out.dir>
 
-    <dropbox.version>3.1.1</dropbox.version>
+    <dropbox.version>3.1.2</dropbox.version>
     <sqlite.version>3.28.0</sqlite.version>
 
     <lombok.version>1.18.10</lombok.version>
