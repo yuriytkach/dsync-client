@@ -32,7 +32,7 @@
     <checkstyle.plugin.version>3.1.1</checkstyle.plugin.version>
     <sevntu.checkstyle.plugin.version>1.35.0</sevntu.checkstyle.plugin.version>
 
-    <pmd.plugin.version>3.13.0</pmd.plugin.version>
+    <pmd.plugin.version>3.16.0</pmd.plugin.version>
 
     <findbugs.version>3.0.1</findbugs.version>
     <findbugs.plugin.version>3.0.5</findbugs.plugin.version>
